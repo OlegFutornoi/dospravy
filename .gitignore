@@ -10,3 +10,4 @@ node_modules/
 /reports/
 /auth/storage-state/**/*
 !/auth/storage-state/**/.gitkeep
+/.trae/

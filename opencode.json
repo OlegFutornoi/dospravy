@@ -3,11 +3,7 @@
   "mcp": {
     "playwright-test": {
       "type": "local",
-      "command": [
-        "npx",
-        "playwright",
-        "run-test-mcp-server"
-      ],
+      "command": ["npx", "playwright", "run-test-mcp-server"],
       "enabled": true
     }
   },
@@ -15,18 +11,24 @@
     "playwright*": false
   },
   "permission": {
-    "*": "allow"
+    "*": "allow",
+    "edit": {
+      "/Users/oleg/AQA/DoSpravy/.husky/**": "allow"
+    }
   },
-  "commands": {
+  "command": {
     "generator": {
+      "template": "$ARGUMENTS",
       "agent": "playwright-test-generator",
       "description": "Generate Playwright tests from a test plan"
     },
     "healer": {
+      "template": "$ARGUMENTS",
       "agent": "playwright-test-healer",
       "description": "Fix failing Playwright tests"
     },
     "planner": {
+      "template": "$ARGUMENTS",
       "agent": "playwright-test-planner",
       "description": "Create a comprehensive test plan"
     }

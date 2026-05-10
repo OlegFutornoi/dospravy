@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "check": "npm run typecheck && npm run lint && npm run format:check",
+    "fix": "npm run lint:fix && npm run format",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "prepare": "husky",
+    "precommit:check": "lint-staged && npm run typecheck",
+    "prepush:check": "npm run check && npx playwright test --list --pass-with-no-tests",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "test": "APP_AREA=business TEST_ENV=stage npx playwright test",
     "test:dev": "APP_AREA=business TEST_ENV=dev npx playwright test",
     "test:stage": "APP_AREA=business TEST_ENV=stage npx playwright test",
@@ -15,8 +25,26 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@types/node": "^25.6.2"
+    "@types/node": "^25.6.2",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-playwright": "^2.3.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.4",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
   }
 }

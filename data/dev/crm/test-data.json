@@ -1,0 +1,22 @@
+{
+  "environment": "dev",
+  "area": "crm",
+  "users": {
+    "primary": {
+      "firstName": "Test",
+      "lastName": "User",
+      "email": "qa-crm-dev@example.com",
+      "phone": "+380000000000"
+    },
+    "secondary": {
+      "firstName": "Backup",
+      "lastName": "User",
+      "email": "qa-crm-dev-2@example.com",
+      "phone": "+380000000001"
+    }
+  },
+  "defaults": {
+    "otpCodeLength": 4,
+    "countryCode": "+380"
+  }
+}

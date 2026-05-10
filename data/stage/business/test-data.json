@@ -1,0 +1,22 @@
+{
+  "environment": "stage",
+  "area": "business",
+  "users": {
+    "primary": {
+      "firstName": "Test",
+      "lastName": "User",
+      "email": "qa-business-stage@example.com",
+      "phone": "+380000000000"
+    },
+    "secondary": {
+      "firstName": "Backup",
+      "lastName": "User",
+      "email": "qa-business-stage-2@example.com",
+      "phone": "+380000000001"
+    }
+  },
+  "defaults": {
+    "otpCodeLength": 4,
+    "countryCode": "+380"
+  }
+}
