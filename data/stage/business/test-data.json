@@ -3,10 +3,8 @@
   "area": "business",
   "users": {
     "primary": {
-      "firstName": "Test",
-      "lastName": "User",
-      "email": "qa-business-stage@example.com",
-      "phone": "+380000000000"
+      "email": "hr@gmail.com",
+      "phone": "0551234567"
     },
     "secondary": {
       "firstName": "Backup",
