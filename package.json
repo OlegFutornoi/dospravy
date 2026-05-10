@@ -1,0 +1,22 @@
+{
+  "name": "dospravy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "APP_AREA=business TEST_ENV=stage npx playwright test",
+    "test:dev": "APP_AREA=business TEST_ENV=dev npx playwright test",
+    "test:stage": "APP_AREA=business TEST_ENV=stage npx playwright test",
+    "test:prod": "APP_AREA=business TEST_ENV=prod npx playwright test",
+    "test:crm:dev": "APP_AREA=crm TEST_ENV=dev npx playwright test",
+    "test:crm:stage": "APP_AREA=crm TEST_ENV=stage npx playwright test",
+    "test:crm:prod": "APP_AREA=crm TEST_ENV=prod npx playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.2"
+  }
+}
