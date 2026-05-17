@@ -18,5 +18,15 @@
   "defaults": {
     "otpCodeLength": 4,
     "countryCode": "+380"
+  },
+  "jobPosting": {
+    "create": {
+      "titlePrefix": "Автотест вакансія dev",
+      "description": "Опис вакансії для автотесту",
+      "city": "Київ",
+      "address": "Київ",
+      "hourlyRate": 50,
+      "employeesNeeded": 1
+    }
   }
 }

@@ -16,5 +16,62 @@
   "defaults": {
     "otpCodeLength": 4,
     "countryCode": "+380"
+  },
+  "jobPosting": {
+    "create": {
+      "titlePrefix": "Автотест вакансія",
+      "description": "Опис вакансії для автотесту",
+      "city": "Київ",
+      "address": "Київ",
+      "hourlyRate": 50,
+      "employeesNeeded": 1
+    }
+  },
+  "order": {
+    "create": {
+      "step2": {
+        "positionName": "Слюсар ремонтник",
+        "workDescription": "Слюсар ремонтник",
+        "perks": ["Харчування (обід)", "Форма"],
+        "gender": "Чоловіча",
+        "ageFrom": 20,
+        "ageTo": 60,
+        "candidateCategories": ["Пенсіонерів"]
+      },
+      "step3": {
+        "keyRequirements": [
+          "Фізична витривалість",
+          "Відсутність медичних протипоказань",
+          "Відсутність судимості",
+          "Відсутність інвалідності"
+        ],
+        "thingsToBring": "Робочий одяг",
+        "requiredDocuments": [
+          "Санітарна книжка",
+          "ІПН",
+          "Водійське посвідчення",
+          "Паспорт",
+          "Посвідчення водія навантажувача"
+        ],
+        "otherDocuments": ["ВП_В"],
+        "experience": "Досвід до 1 року"
+      },
+      "step4": {
+        "city": "Київ",
+        "street": "вулиця Хрещатик",
+        "buildingNumber": "99Б",
+        "riverBank": "Правий",
+        "metro": "Святошин",
+        "district": "місто Київ",
+        "landmarks": "Навпроти ТРЦ \"Глобус\"",
+        "howToGetThere": "Маршрутне таксі 22"
+      },
+      "step5": {
+        "hourlyRate": 255,
+        "shiftStart": "09:00",
+        "shiftEnd": "18:00",
+        "employeesCount": 1
+      }
+    }
   }
 }

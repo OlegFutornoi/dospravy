@@ -50,6 +50,52 @@ export interface TestDataFile {
     otpCodeLength: number;
     countryCode: string;
   };
+  jobPosting?: {
+    create: {
+      titlePrefix: string;
+      description: string;
+      city: string;
+      address: string;
+      hourlyRate: number;
+      employeesNeeded: number;
+    };
+  };
+  order?: {
+    create: {
+      step2: {
+        positionName: string;
+        workDescription: string;
+        perks: string[];
+        gender: string;
+        ageFrom: number;
+        ageTo: number;
+        candidateCategories: string[];
+      };
+      step3: {
+        keyRequirements: string[];
+        thingsToBring: string;
+        requiredDocuments: string[];
+        otherDocuments: string[];
+        experience: string;
+      };
+      step4: {
+        city: string;
+        street: string;
+        buildingNumber: string;
+        riverBank: string;
+        metro: string;
+        district: string;
+        landmarks: string;
+        howToGetThere: string;
+      };
+      step5: {
+        hourlyRate: number;
+        shiftStart: string;
+        shiftEnd: string;
+        employeesCount: number;
+      };
+    };
+  };
 }
 
 interface LoadedData {
@@ -79,6 +125,14 @@ function ensureNumber(value: unknown, pathName: string): number {
   }
 
   return value;
+}
+
+function ensureStringArray(value: unknown, pathName: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`Поле "${pathName}" має бути масивом`);
+  }
+
+  return value.map((item, index) => ensureString(item, `${pathName}[${index}]`));
 }
 
 function ensureNoPlaceholder(value: string, pathName: string): string {
@@ -152,10 +206,106 @@ function validateUserData(value: unknown, pathName: string): TestDataFile['users
   };
 }
 
+function validateJobPostingCreate(
+  value: unknown,
+  pathName: string,
+): NonNullable<TestDataFile['jobPosting']>['create'] {
+  const root = ensureRecord(value, pathName);
+
+  return {
+    titlePrefix: ensureString(root.titlePrefix, `${pathName}.titlePrefix`),
+    description: ensureString(root.description, `${pathName}.description`),
+    city: ensureString(root.city, `${pathName}.city`),
+    address: ensureString(root.address, `${pathName}.address`),
+    hourlyRate: ensureNumber(root.hourlyRate, `${pathName}.hourlyRate`),
+    employeesNeeded: ensureNumber(root.employeesNeeded, `${pathName}.employeesNeeded`),
+  };
+}
+
+function validateJobPosting(
+  value: unknown,
+  pathName: string,
+): NonNullable<TestDataFile['jobPosting']> {
+  const root = ensureRecord(value, pathName);
+
+  return {
+    create: validateJobPostingCreate(root.create, `${pathName}.create`),
+  };
+}
+
+function validateOrderCreate(
+  value: unknown,
+  pathName: string,
+): NonNullable<TestDataFile['order']>['create'] {
+  const root = ensureRecord(value, pathName);
+  const step2 = ensureRecord(root.step2, `${pathName}.step2`);
+  const step3 = ensureRecord(root.step3, `${pathName}.step3`);
+  const step4 = ensureRecord(root.step4, `${pathName}.step4`);
+  const step5 = ensureRecord(root.step5, `${pathName}.step5`);
+
+  return {
+    step2: {
+      positionName: ensureString(step2.positionName, `${pathName}.step2.positionName`),
+      workDescription: ensureString(step2.workDescription, `${pathName}.step2.workDescription`),
+      perks: ensureStringArray(step2.perks, `${pathName}.step2.perks`),
+      gender: ensureString(step2.gender, `${pathName}.step2.gender`),
+      ageFrom: ensureNumber(step2.ageFrom, `${pathName}.step2.ageFrom`),
+      ageTo: ensureNumber(step2.ageTo, `${pathName}.step2.ageTo`),
+      candidateCategories: ensureStringArray(
+        step2.candidateCategories,
+        `${pathName}.step2.candidateCategories`,
+      ),
+    },
+    step3: {
+      keyRequirements: ensureStringArray(
+        step3.keyRequirements,
+        `${pathName}.step3.keyRequirements`,
+      ),
+      thingsToBring: ensureString(step3.thingsToBring, `${pathName}.step3.thingsToBring`),
+      requiredDocuments: ensureStringArray(
+        step3.requiredDocuments,
+        `${pathName}.step3.requiredDocuments`,
+      ),
+      otherDocuments: ensureStringArray(step3.otherDocuments, `${pathName}.step3.otherDocuments`),
+      experience: ensureString(step3.experience, `${pathName}.step3.experience`),
+    },
+    step4: {
+      city: ensureString(step4.city, `${pathName}.step4.city`),
+      street: ensureString(step4.street, `${pathName}.step4.street`),
+      buildingNumber: ensureString(step4.buildingNumber, `${pathName}.step4.buildingNumber`),
+      riverBank: ensureString(step4.riverBank, `${pathName}.step4.riverBank`),
+      metro: ensureString(step4.metro, `${pathName}.step4.metro`),
+      district: ensureString(step4.district, `${pathName}.step4.district`),
+      landmarks: ensureString(step4.landmarks, `${pathName}.step4.landmarks`),
+      howToGetThere: ensureString(step4.howToGetThere, `${pathName}.step4.howToGetThere`),
+    },
+    step5: {
+      hourlyRate: ensureNumber(step5.hourlyRate, `${pathName}.step5.hourlyRate`),
+      shiftStart: ensureString(step5.shiftStart, `${pathName}.step5.shiftStart`),
+      shiftEnd: ensureString(step5.shiftEnd, `${pathName}.step5.shiftEnd`),
+      employeesCount: ensureNumber(step5.employeesCount, `${pathName}.step5.employeesCount`),
+    },
+  };
+}
+
+function validateOrder(value: unknown, pathName: string): NonNullable<TestDataFile['order']> {
+  const root = ensureRecord(value, pathName);
+
+  return {
+    create: validateOrderCreate(root.create, `${pathName}.create`),
+  };
+}
+
 function validateTestDataFile(data: unknown): TestDataFile {
   const root = ensureRecord(data, 'test-data.json');
   const users = ensureRecord(root.users, 'test-data.json.users');
   const defaults = ensureRecord(root.defaults, 'test-data.json.defaults');
+  const jobPosting =
+    root.jobPosting !== undefined
+      ? validateJobPosting(root.jobPosting, 'test-data.json.jobPosting')
+      : undefined;
+  const order =
+    root.order !== undefined ? validateOrder(root.order, 'test-data.json.order') : undefined;
 
   return {
     environment: ensureString(root.environment, 'test-data.json.environment') as TestEnv,
@@ -168,6 +318,8 @@ function validateTestDataFile(data: unknown): TestDataFile {
       otpCodeLength: ensureNumber(defaults.otpCodeLength, 'test-data.json.defaults.otpCodeLength'),
       countryCode: ensureString(defaults.countryCode, 'test-data.json.defaults.countryCode'),
     },
+    jobPosting,
+    order,
   };
 }
 
