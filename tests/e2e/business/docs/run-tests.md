@@ -15,6 +15,19 @@
 - `prod`:
   `APP_AREA=business TEST_ENV=prod npx playwright test tests/e2e/business/smoke/login.smoke.spec.ts --project=chromium`
 
+## Запуск тільки business order create smoke
+
+- `dev`:
+  `APP_AREA=business TEST_ENV=dev npx playwright test tests/e2e/business/smoke/order-create.smoke.spec.ts --project=chromium`
+- `stage`:
+  `APP_AREA=business TEST_ENV=stage npx playwright test tests/e2e/business/smoke/order-create.smoke.spec.ts --project=chromium`
+- `prod`:
+  `APP_AREA=business TEST_ENV=prod npx playwright test tests/e2e/business/smoke/order-create.smoke.spec.ts --project=chromium`
+
+## Логи в консолі
+
+- Тест створення замовлення логуює перехід між кроками майстра та фінальний стан `Замовлення № ... створено!`
+
 ## Запуск тільки business login regression
 
 - `dev`:

@@ -31,7 +31,7 @@
     "create": {
       "step2": {
         "positionName": "Слюсар ремонтник",
-        "workDescription": "Слюсар ремонтник",
+        "workDescription": "с-с-слюсар\ne\nмеханік",
         "perks": ["Харчування (обід)", "Форма"],
         "gender": "Чоловіча",
         "ageFrom": 20,
@@ -48,12 +48,12 @@
         "thingsToBring": "Робочий одяг",
         "requiredDocuments": [
           "Санітарна книжка",
-          "ІПН",
+          "ІНН",
           "Водійське посвідчення",
           "Паспорт",
           "Посвідчення водія навантажувача"
         ],
-        "otherDocuments": ["ВП_В"],
+        "otherDocuments": [],
         "experience": "Досвід до 1 року"
       },
       "step4": {
@@ -67,7 +67,7 @@
         "howToGetThere": "Маршрутне таксі 22"
       },
       "step5": {
-        "hourlyRate": 255,
+        "hourlyRate": 355,
         "shiftStart": "09:00",
         "shiftEnd": "18:00",
         "employeesCount": 1
