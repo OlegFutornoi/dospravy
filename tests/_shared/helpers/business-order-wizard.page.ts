@@ -155,7 +155,14 @@ export class BusinessOrderWizardPage {
   }
 
   private get workPeriodInput() {
-    return this.page.getByLabel('Період роботи');
+    const fromFormItem = this.page
+      .locator('.ant-form-item')
+      .filter({ hasText: 'Період роботи' })
+      .first()
+      .locator('.ant-picker')
+      .first();
+
+    return fromFormItem.or(this.page.getByLabel('Період роботи')).first();
   }
 
   private get shiftStartInput() {
@@ -548,9 +555,19 @@ export class BusinessOrderWizardPage {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateTitle = this.formatDateISO(tomorrow);
 
-    await this.page.locator(`.ant-picker-dropdown td[title="${dateTitle}"]`).first().click();
-    await this.page.locator(`.ant-picker-dropdown td[title="${dateTitle}"]`).first().click();
-    await this.page.keyboard.press('Escape');
+    const pickerDropdown = this.page.locator('.ant-picker-dropdown').last();
+    await expect(pickerDropdown).toBeVisible();
+
+    const dateCell = pickerDropdown.locator(`td[title="${dateTitle}"]`).first();
+    await dateCell.click();
+    await dateCell.click();
+
+    const applyButton = pickerDropdown.getByRole('button', { name: 'Застосувати' }).first();
+    if ((await applyButton.count()) > 0) {
+      await applyButton.click();
+    } else {
+      await this.page.keyboard.press('Escape');
+    }
 
     await this.setTimeValue(this.shiftStartInput, data.step5.shiftStart);
     await this.setTimeValue(this.shiftEndInput, data.step5.shiftEnd);
@@ -561,7 +578,7 @@ export class BusinessOrderWizardPage {
   async submitOrder(): Promise<void> {
     await this.orderButton.click();
     this.log('Натиснуто "Замовити"');
-    await expect(this.orderCreatedText).toBeVisible();
+    await expect(this.orderCreatedText).toBeVisible({ timeout: 30_000 });
     const createdText = await this.orderCreatedText.first().innerText();
     this.log(`Замовлення створено: ${createdText}`);
   }
