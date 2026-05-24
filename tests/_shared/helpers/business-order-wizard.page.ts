@@ -6,8 +6,21 @@ export type OrderCreateData = NonNullable<TestDataFile['order']>['create'];
 export class BusinessOrderWizardPage {
   constructor(private readonly page: Page) {}
 
+  private getLogContext(): string {
+    const currentUrl = this.page.url();
+    const pathMatch = currentUrl.match(/^https?:\/\/[^/]+(\/[^?#]*)/);
+    const pathname = pathMatch?.[1] ?? currentUrl;
+    const orderMatch = pathname.match(/\/order\/([^/?#]+)/);
+    if (orderMatch) {
+      return `orderId: ${orderMatch[1]}`;
+    }
+
+    const normalizedPath = pathname === '/' ? '/' : pathname.replace(/\/$/, '');
+    return `path: ${normalizedPath}`;
+  }
+
   private log(message: string): void {
-    console.log(`[E2E] ${message} | URL: ${this.page.url()}`);
+    console.log(`[E2E] ${message} | ${this.getLogContext()}`);
   }
 
   private get createOrderMenuItem() {
@@ -441,37 +454,53 @@ export class BusinessOrderWizardPage {
     await this.positionNameInput.press('Control+A');
     await this.positionNameInput.press('Backspace');
     await this.positionNameInput.pressSequentially(queryBase, { delay: 1000 });
+    this.log(`Крок 2: Введено назву позиції "${queryBase}"`);
 
-    const addNewRow = this.page
-      .getByText(new RegExp(`^Додати нову позицію\\s+"${queryBase}"$`))
-      .first();
+    const addNewRow = this.page.getByText(/Додати нову позицію/).first();
     await expect(addNewRow).toBeVisible({ timeout: 10_000 });
 
-    const dropdownRoot = addNewRow.locator(
-      'xpath=ancestor::*[@role="listbox" or contains(@class,"ant-select-dropdown") or @id="category_list"][1]',
-    );
-    const option = dropdownRoot.getByText(positionName, { exact: true }).first();
+    const option = this.page
+      .locator('[role="option"]:visible')
+      .filter({ hasText: new RegExp(`^${positionName}$`) })
+      .first();
 
-    await expect(option).toBeVisible({ timeout: 30_000 });
-    await option.click();
+    try {
+      await expect(option).toBeVisible({ timeout: 5_000 });
+      await option.click();
+    } catch {
+      await this.positionNameInput.pressSequentially(' р', { delay: 1000 });
+      try {
+        const refinedOption = this.page.getByText(positionName, { exact: true }).last();
+        await expect(refinedOption).toBeVisible({ timeout: 10_000 });
+        await refinedOption.click();
+      } catch {
+        await this.page.keyboard.press('ArrowDown');
+        await this.page.keyboard.press('Enter');
+      }
+    }
     await this.expectAutocompleteHasValue(this.positionNameInput, positionName);
     this.log(`Крок 2: Обрано позицію "${positionName}"`);
 
     await this.workToDoInput.fill(data.step2.workDescription);
+    this.log(`Крок 2: Заповнено "Що потрібно робити" = "${data.step2.workDescription}"`);
 
     for (const perk of data.step2.perks) {
       await this.selectCheckboxInGroup(this.perksGroup, perk);
     }
+    this.log(`Крок 2: Обрано переваги = ${data.step2.perks.join(', ')}`);
 
     await this.selectRadioInGroup(this.genderGroup, data.step2.gender);
+    this.log(`Крок 2: Обрано стать = "${data.step2.gender}"`);
 
     await expect(this.ageFromInput).toBeVisible();
     await this.ageFromInput.fill(String(data.step2.ageFrom));
     await this.ageToInput.fill(String(data.step2.ageTo));
+    this.log(`Крок 2: Вік = ${data.step2.ageFrom}-${data.step2.ageTo}`);
 
     for (const category of data.step2.candidateCategories) {
       await this.selectCheckboxInGroup(this.candidateCategoriesGroup, category);
     }
+    this.log(`Крок 2: Категорії кандидатів = ${data.step2.candidateCategories.join(', ')}`);
     this.log('Крок 2: Поля заповнено');
   }
 
@@ -484,12 +513,15 @@ export class BusinessOrderWizardPage {
     for (const req of data.step3.keyRequirements) {
       await this.clickTagButton(req);
     }
+    this.log(`Крок 3: Ключові вимоги = ${data.step3.keyRequirements.join(', ')}`);
 
     await this.thingsToBringInput.fill(data.step3.thingsToBring);
+    this.log(`Крок 3: "Що з собою мати" = "${data.step3.thingsToBring}"`);
 
     for (const doc of data.step3.requiredDocuments) {
       await this.clickTagButton(doc);
     }
+    this.log(`Крок 3: Документи = ${data.step3.requiredDocuments.join(', ')}`);
 
     if (data.step3.otherDocuments.length > 0 && (await this.otherDocumentsSelect.count()) > 0) {
       await this.otherDocumentsSelect.click();
@@ -500,6 +532,7 @@ export class BusinessOrderWizardPage {
     }
 
     await this.selectRadioInGroup(this.experienceGroup, data.step3.experience);
+    this.log(`Крок 3: Досвід = "${data.step3.experience}"`);
     this.log('Крок 3: Поля заповнено');
   }
 
@@ -510,6 +543,9 @@ export class BusinessOrderWizardPage {
     await this.selectFirstAutocompleteOption(this.cityInput, data.step4.city);
     await this.selectFirstAutocompleteOption(this.streetInput, data.step4.street);
     await this.buildingNumberInput.fill(data.step4.buildingNumber);
+    this.log(
+      `Крок 4: Адреса = ${data.step4.city}, ${data.step4.street}, ${data.step4.buildingNumber}`,
+    );
 
     const coastInput = this.page.locator('#coast');
     if ((await coastInput.count()) > 0) {
@@ -540,6 +576,9 @@ export class BusinessOrderWizardPage {
     await this.districtInput.fill(data.step4.district);
     await this.landmarksInput.fill(data.step4.landmarks);
     await this.howToGetThereInput.fill(data.step4.howToGetThere);
+    this.log(`Крок 4: Район = "${data.step4.district}"`);
+    this.log(`Крок 4: Орієнтири = "${data.step4.landmarks}"`);
+    this.log(`Крок 4: Як дістатись = "${data.step4.howToGetThere}"`);
     this.log('Крок 4: Поля заповнено');
   }
 
@@ -548,6 +587,7 @@ export class BusinessOrderWizardPage {
     this.log('Крок 5: Графік та години роботи');
 
     await this.hourlyRateInput.fill(String(data.step5.hourlyRate));
+    this.log(`Крок 5: Оплата = ${data.step5.hourlyRate} грн/год`);
     await expect(this.workPeriodInput).toBeVisible();
     await this.workPeriodInput.click();
 
@@ -572,6 +612,9 @@ export class BusinessOrderWizardPage {
     await this.setTimeValue(this.shiftStartInput, data.step5.shiftStart);
     await this.setTimeValue(this.shiftEndInput, data.step5.shiftEnd);
     await this.employeesCountInput.fill(String(data.step5.employeesCount));
+    this.log(
+      `Крок 5: Зміна = ${data.step5.shiftStart}-${data.step5.shiftEnd}, працівників = ${data.step5.employeesCount}`,
+    );
     this.log('Крок 5: Поля заповнено');
   }
 

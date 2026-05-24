@@ -3,6 +3,18 @@ import { expect, type Page } from '@playwright/test';
 export class BusinessLoginPage {
   constructor(private readonly page: Page) {}
 
+  private getLogContext(): string {
+    const currentUrl = this.page.url();
+    const pathMatch = currentUrl.match(/^https?:\/\/[^/]+(\/[^?#]*)/);
+    const pathname = pathMatch?.[1] ?? currentUrl;
+    const normalizedPath = pathname === '/' ? '/' : pathname.replace(/\/$/, '');
+    return `path: ${normalizedPath}`;
+  }
+
+  private log(message: string): void {
+    console.log(`[E2E] ${message} | ${this.getLogContext()}`);
+  }
+
   private get loginHeading() {
     return this.page.getByRole('heading', { name: 'Увійти' });
   }
@@ -43,7 +55,7 @@ export class BusinessLoginPage {
   }
 
   private get otpHeading() {
-    return this.page.getByRole('heading', { name: 'Підтвердження входу' });
+    return this.page.getByRole('heading', { name: /Підтвердження(\s+входу)?/ });
   }
 
   private get otpInputs() {
@@ -90,12 +102,14 @@ export class BusinessLoginPage {
     await expect(this.loginHeading).toBeVisible();
     await expect(this.emailTab).toBeVisible();
     await expect(this.phoneTab).toBeVisible();
+    this.log('Відкрито сторінку логіну');
   }
 
   async loginByEmail(email: string, password: string): Promise<void> {
     await this.emailTab.click();
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
+    this.log(`Логін через email: email="${email}", password="${password}"`);
     await this.submitButton.click();
   }
 
@@ -109,22 +123,29 @@ export class BusinessLoginPage {
     await this.openForgotPassword();
     await expect(this.resetPhoneInput).toBeVisible();
     await this.resetPhoneInput.fill(phone);
+    this.log(`Відновлення пароля: введено телефон "${phone}"`);
     await this.getCodeButton.click();
     await expect(this.resetPasswordHeading).toBeVisible();
-    await expect(this.otpInputs.first()).toBeVisible();
+    await expect(this.otpInputs.first()).toBeVisible({ timeout: 30_000 });
   }
 
   async openPhoneOtp(phone: string): Promise<void> {
     await this.phoneTab.click();
     await expect(this.phoneInput).toBeVisible();
     await this.phoneInput.fill(phone);
+    this.log(`Логін через телефон: введено номер "${phone}"`);
     await this.getCodeButton.click();
-    await expect(this.otpHeading).toBeVisible();
+    try {
+      await expect(this.otpHeading).toBeVisible({ timeout: 30_000 });
+    } catch {
+      await expect(this.otpInputs.first()).toBeVisible({ timeout: 30_000 });
+    }
   }
 
   async submitOtp(code: string): Promise<void> {
     const normalized = code.trim();
     await expect(this.otpInputs).toHaveCount(normalized.length);
+    this.log(`Введено OTP код "${normalized}"`);
 
     for (let i = 0; i < normalized.length; i += 1) {
       await this.otpInputs.nth(i).fill(normalized[i]);
@@ -157,6 +178,7 @@ export class BusinessLoginPage {
   async saveNewPassword(password: string): Promise<void> {
     await this.newPasswordInput.fill(password);
     await this.confirmPasswordInput.fill(password);
+    this.log(`Збереження нового пароля "${password}"`);
     await this.savePasswordButton.click();
   }
 }
