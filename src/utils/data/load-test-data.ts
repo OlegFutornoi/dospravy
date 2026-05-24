@@ -150,15 +150,25 @@ function ensureNoPlaceholder(value: string, pathName: string): string {
   return normalized;
 }
 
+function ensureConfiguredWhenRequired(
+  value: string,
+  pathName: string,
+  isRequired: boolean,
+): string {
+  return isRequired ? ensureNoPlaceholder(value, pathName) : value;
+}
+
 function validateAuthDataFile(data: unknown): AuthDataFile {
   const root = ensureRecord(data, 'auth.json');
   const auth = ensureRecord(root.auth, 'auth.json.auth');
   const emailPassword = ensureRecord(auth.emailPassword, 'auth.json.auth.emailPassword');
   const phoneOtp = ensureRecord(auth.phoneOtp, 'auth.json.auth.phoneOtp');
+  const area = ensureString(root.area, 'auth.json.area') as AppArea;
+  const requiresPhoneOtpData = area === 'business';
 
   return {
     environment: ensureString(root.environment, 'auth.json.environment') as TestEnv,
-    area: ensureString(root.area, 'auth.json.area') as AppArea,
+    area,
     auth: {
       emailPassword: {
         email: ensureNoPlaceholder(
@@ -172,13 +182,15 @@ function validateAuthDataFile(data: unknown): AuthDataFile {
         rememberMe: Boolean(emailPassword.rememberMe),
       },
       phoneOtp: {
-        phone: ensureNoPlaceholder(
+        phone: ensureConfiguredWhenRequired(
           ensureString(phoneOtp.phone, 'auth.json.auth.phoneOtp.phone'),
           'auth.json.auth.phoneOtp.phone',
+          requiresPhoneOtpData,
         ),
-        otp: ensureNoPlaceholder(
+        otp: ensureConfiguredWhenRequired(
           ensureString(phoneOtp.otp, 'auth.json.auth.phoneOtp.otp'),
           'auth.json.auth.phoneOtp.otp',
+          requiresPhoneOtpData,
         ),
         resendTimeoutSec: ensureNumber(
           phoneOtp.resendTimeoutSec,
