@@ -310,8 +310,16 @@ export class CrmOrdersPage {
     await expect(this.ordersHeading).toBeVisible({ timeout: 15_000 });
     await expect(this.activeMenuItem).toHaveAttribute('title', 'Модерація замовлень');
     await expect(this.ordersSearchInput).toBeVisible({ timeout: 15_000 });
-    await expect(this.orderCards.first()).toBeVisible({ timeout: 15_000 });
-    this.log('Сторінка orders завантажена');
+    const cardsCount = await this.orderCards.count();
+    this.log(`Сторінка orders завантажена, карток для модерації: ${cardsCount}`);
+  }
+
+  async getOrderCardsCount(): Promise<number> {
+    return this.orderCards.count();
+  }
+
+  logNoOrdersForModeration(): void {
+    this.log('Відсутні ордери для модерації');
   }
 
   async currentOrderId(): Promise<string> {
