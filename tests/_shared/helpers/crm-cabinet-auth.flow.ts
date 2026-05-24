@@ -2,10 +2,14 @@ import { expect, type Page } from '@playwright/test';
 import type { AuthDataFile } from '../../../src/utils/data/load-test-data';
 import { CrmLoginPage } from './crm-login.page';
 
-export async function ensureCrmCabinetByEmailPassword(page: Page, authData: AuthDataFile) {
+export async function ensureCrmCabinetByEmailPassword(
+  page: Page,
+  authData: AuthDataFile,
+  entryUrl = '/',
+) {
   const loginPage = new CrmLoginPage(page);
 
-  await page.goto('/');
+  await page.goto(entryUrl);
 
   const loginHeading = page.getByRole('heading', { name: 'Увійти' });
   const authorizedShell = page.locator('.private-layout, .ant-layout-sider, aside, nav').first();

@@ -2,8 +2,12 @@ import { expect, type Page } from '@playwright/test';
 import type { AuthDataFile } from '../../../src/utils/data/load-test-data';
 import { BusinessLoginPage } from './business-login.page';
 
-export async function ensureBusinessCabinetByPhoneOtp(page: Page, authData: AuthDataFile) {
-  await page.goto('/workspace');
+export async function ensureBusinessCabinetByPhoneOtp(
+  page: Page,
+  authData: AuthDataFile,
+  entryUrl = '/workspace',
+) {
+  await page.goto(entryUrl);
 
   const loginHeading = page.getByRole('heading', { name: 'Увійти' });
   const workspaceTab = page.getByRole('tab', { name: 'Замовлення' });

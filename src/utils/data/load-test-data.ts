@@ -2,10 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export type TestEnv = 'dev' | 'stage' | 'prod';
-export type AppArea = 'business' | 'crm';
+export type CabinetArea = 'business' | 'crm';
+export type AppArea = CabinetArea | 'combined';
 
 const ALLOWED_ENVS: TestEnv[] = ['dev', 'stage', 'prod'];
-const ALLOWED_AREAS: AppArea[] = ['business', 'crm'];
+const ALLOWED_AREAS: AppArea[] = ['business', 'crm', 'combined'];
+const CABINET_AREAS: CabinetArea[] = ['business', 'crm'];
 
 export interface RuntimeContext {
   testEnv: TestEnv;
@@ -14,7 +16,7 @@ export interface RuntimeContext {
 
 export interface AuthDataFile {
   environment: TestEnv;
-  area: AppArea;
+  area: CabinetArea;
   auth: {
     emailPassword: {
       email: string;
@@ -31,7 +33,7 @@ export interface AuthDataFile {
 
 export interface TestDataFile {
   environment: TestEnv;
-  area: AppArea;
+  area: CabinetArea;
   users: {
     primary: {
       email: string;
@@ -103,6 +105,10 @@ interface LoadedData {
   testData: TestDataFile;
 }
 
+function isCabinetArea(value: string): value is CabinetArea {
+  return CABINET_AREAS.includes(value as CabinetArea);
+}
+
 function ensureRecord(value: unknown, pathName: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`Некоректна структура даних у "${pathName}"`);
@@ -163,7 +169,11 @@ function validateAuthDataFile(data: unknown): AuthDataFile {
   const auth = ensureRecord(root.auth, 'auth.json.auth');
   const emailPassword = ensureRecord(auth.emailPassword, 'auth.json.auth.emailPassword');
   const phoneOtp = ensureRecord(auth.phoneOtp, 'auth.json.auth.phoneOtp');
-  const area = ensureString(root.area, 'auth.json.area') as AppArea;
+  const rawArea = ensureString(root.area, 'auth.json.area');
+  if (!isCabinetArea(rawArea)) {
+    throw new Error(`Поле "auth.json.area" має бути одним із: ${CABINET_AREAS.join(', ')}`);
+  }
+  const area = rawArea;
   const requiresPhoneOtpData = area === 'business';
 
   return {
@@ -319,9 +329,14 @@ function validateTestDataFile(data: unknown): TestDataFile {
   const order =
     root.order !== undefined ? validateOrder(root.order, 'test-data.json.order') : undefined;
 
+  const rawArea = ensureString(root.area, 'test-data.json.area');
+  if (!isCabinetArea(rawArea)) {
+    throw new Error(`Поле "test-data.json.area" має бути одним із: ${CABINET_AREAS.join(', ')}`);
+  }
+
   return {
     environment: ensureString(root.environment, 'test-data.json.environment') as TestEnv,
-    area: ensureString(root.area, 'test-data.json.area') as AppArea,
+    area: rawArea,
     users: {
       primary: validateUserData(users.primary, 'test-data.json.users.primary'),
       secondary: validateUserData(users.secondary, 'test-data.json.users.secondary'),
@@ -370,18 +385,18 @@ function readJson<T>(filePath: string): T {
   return JSON.parse(file) as T;
 }
 
-export function loadAreaData(context: RuntimeContext): LoadedData {
-  const baseDir = path.join(process.cwd(), 'data', context.testEnv, context.appArea);
+export function loadCabinetAreaData(testEnv: TestEnv, appArea: CabinetArea): LoadedData {
+  const baseDir = path.join(process.cwd(), 'data', testEnv, appArea);
   const authFilePath = path.join(baseDir, 'auth.json');
   const testDataFilePath = path.join(baseDir, 'test-data.json');
   const authData = validateAuthDataFile(readJson<unknown>(authFilePath));
   const testData = validateTestDataFile(readJson<unknown>(testDataFilePath));
 
-  if (authData.environment !== context.testEnv || authData.area !== context.appArea) {
+  if (authData.environment !== testEnv || authData.area !== appArea) {
     throw new Error('Контекст запуску не збігається з даними у auth.json');
   }
 
-  if (testData.environment !== context.testEnv || testData.area !== context.appArea) {
+  if (testData.environment !== testEnv || testData.area !== appArea) {
     throw new Error('Контекст запуску не збігається з даними у test-data.json');
   }
 
@@ -389,4 +404,14 @@ export function loadAreaData(context: RuntimeContext): LoadedData {
     authData,
     testData,
   };
+}
+
+export function loadAreaData(context: RuntimeContext): LoadedData {
+  if (!isCabinetArea(context.appArea)) {
+    throw new Error(
+      'loadAreaData підтримує тільки business/crm. Для combined suite використовуйте окремий combined fixture',
+    );
+  }
+
+  return loadCabinetAreaData(context.testEnv, context.appArea);
 }

@@ -19,7 +19,10 @@
     "test:prod": "APP_AREA=business TEST_ENV=prod npx playwright test",
     "test:crm:dev": "APP_AREA=crm TEST_ENV=dev npx playwright test",
     "test:crm:stage": "APP_AREA=crm TEST_ENV=stage npx playwright test",
-    "test:crm:prod": "APP_AREA=crm TEST_ENV=prod npx playwright test"
+    "test:crm:prod": "APP_AREA=crm TEST_ENV=prod npx playwright test",
+    "test:combined:dev": "APP_AREA=combined TEST_ENV=dev npx playwright test tests/e2e/combined",
+    "test:combined:stage": "APP_AREA=combined TEST_ENV=stage npx playwright test tests/e2e/combined",
+    "test:combined:prod": "APP_AREA=combined TEST_ENV=prod npx playwright test tests/e2e/combined"
   },
   "keywords": [],
   "author": "",

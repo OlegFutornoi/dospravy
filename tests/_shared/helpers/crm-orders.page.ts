@@ -298,6 +298,12 @@ export class CrmOrdersPage {
     this.log('Відкрито CRM сторінку модерації замовлень');
   }
 
+  async gotoByUrl(url: string): Promise<void> {
+    await this.page.goto(url);
+    await this.expectLoaded();
+    this.log('Відкрито CRM сторінку модерації замовлень за абсолютним URL');
+  }
+
   async openFromSidebar(): Promise<void> {
     await expect(this.menuItem('Модерація замовлень')).toBeVisible();
     await this.menuItem('Модерація замовлень').click();
@@ -334,6 +340,11 @@ export class CrmOrdersPage {
     return orderId;
   }
 
+  async currentOrderLabel(): Promise<string> {
+    await expect(this.detailsOrderLabel).toBeVisible();
+    return this.normalizeText(await this.detailsOrderLabel.textContent());
+  }
+
   async currentActiveCardSignature(): Promise<string> {
     await expect(this.activeOrderCard).toBeVisible();
     const signature = this.normalizeText(await this.activeOrderCard.textContent());
@@ -359,11 +370,38 @@ export class CrmOrdersPage {
       await targetCard.locator('.ant-card-head-title').first().textContent(),
     );
 
-    await targetCard.click();
-    await expect(targetCard).toHaveClass(/active/);
+    await targetCard.scrollIntoViewIfNeeded();
+    const alreadyActive = await targetCard.evaluate((element) =>
+      element.classList.contains('active'),
+    );
+    if (!alreadyActive) {
+      const clickableArea = targetCard.locator('.ant-card-body').first();
+      const clickTarget = (await clickableArea.count()) > 0 ? clickableArea : targetCard;
+
+      try {
+        await clickTarget.click();
+      } catch {
+        await clickTarget.evaluate((element) => {
+          if ('click' in element && typeof element.click === 'function') {
+            element.click();
+          }
+        });
+      }
+    }
+    await expect
+      .poll(() => targetCard.evaluate((element) => element.classList.contains('active')), {
+        timeout: 10_000,
+        message: `Після кліку картка #${index + 1} повинна стати активною`,
+      })
+      .toBe(true);
     await expect(this.detailsForm).toBeVisible();
     await expect(this.detailsOrderLabel).toContainText('Order ');
     this.log(`Обрано картку замовлення #${index + 1}${cardTitle ? `: ${cardTitle}` : ''}`);
+  }
+
+  async expectCurrentOrderLabelContains(text: string): Promise<void> {
+    await expect(this.detailsOrderLabel).toContainText(text);
+    this.log(`У правій панелі відкрито замовлення з ідентифікатором "${text}"`);
   }
 
   async enablePublicAccess(): Promise<void> {
@@ -391,8 +429,9 @@ export class CrmOrdersPage {
 
   async waitForOrdersReloaded(): Promise<void> {
     await expect(this.ordersHeading).toBeVisible({ timeout: 15_000 });
-    await expect(this.orderCards.first()).toBeVisible({ timeout: 15_000 });
-    this.log('Сторінка orders повторно завантажена після модерації');
+    await expect(this.ordersSearchInput).toBeVisible({ timeout: 15_000 });
+    const cardsCount = await this.orderCards.count();
+    this.log(`Сторінка orders повторно завантажена після модерації, карток у черзі: ${cardsCount}`);
   }
 
   async expectOrderMissingBySignature(signature: string): Promise<void> {

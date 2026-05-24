@@ -1,0 +1,11 @@
+{
+  "environment": "prod",
+  "area": "combined",
+  "flows": {
+    "orderLifecycle": {
+      "moderationAppearanceTimeoutMs": 120000,
+      "maxReloadAttempts": 8,
+      "expectStatusChange": true
+    }
+  }
+}

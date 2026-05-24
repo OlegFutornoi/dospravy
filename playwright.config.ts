@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 type TestEnv = 'dev' | 'stage' | 'prod';
-type AppArea = 'business' | 'crm';
+type AppArea = 'business' | 'crm' | 'combined';
 
 const baseUrls: Record<AppArea, Record<TestEnv, string>> = {
   business: {
@@ -13,6 +13,11 @@ const baseUrls: Record<AppArea, Record<TestEnv, string>> = {
     dev: 'https://crm-dev.dospravy.com.ua/',
     stage: 'https://crm-staging.dospravy.com.ua/',
     prod: 'https://crm.dospravy.com.ua/',
+  },
+  combined: {
+    dev: 'https://business-dev.dospravy.com.ua/',
+    stage: 'https://business-staging.dospravy.com.ua/',
+    prod: 'https://business.dospravy.com.ua/',
   },
 };
 

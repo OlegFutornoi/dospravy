@@ -3,6 +3,12 @@ import type { TestDataFile } from '../../../src/utils/data/load-test-data';
 
 export type OrderCreateData = NonNullable<TestDataFile['order']>['create'];
 
+export interface CreatedBusinessOrderSnapshot {
+  businessOrderNumber: string;
+  businessDraftOrderId: string;
+  successMessage: string;
+}
+
 export class BusinessOrderWizardPage {
   constructor(private readonly page: Page) {}
 
@@ -439,6 +445,15 @@ export class BusinessOrderWizardPage {
     return `${year}-${month}-${day}`;
   }
 
+  private getBusinessDraftOrderId(): string {
+    const match = this.page.url().match(/\/order\/([^/?#]+)/);
+    if (!match?.[1]) {
+      throw new Error('Не вдалося визначити draft orderId з URL business order wizard');
+    }
+
+    return match[1];
+  }
+
   async fillStep2OrderInfo(data: OrderCreateData): Promise<void> {
     await expect(
       this.page.getByRole('heading', { name: 'Інформація про замовлення' }),
@@ -618,11 +633,33 @@ export class BusinessOrderWizardPage {
     this.log('Крок 5: Поля заповнено');
   }
 
-  async submitOrder(): Promise<void> {
+  async submitOrderAndCapture(): Promise<CreatedBusinessOrderSnapshot> {
+    const businessDraftOrderId = this.getBusinessDraftOrderId();
     await this.orderButton.click();
     this.log('Натиснуто "Замовити"');
     await expect(this.orderCreatedText).toBeVisible({ timeout: 30_000 });
-    const createdText = await this.orderCreatedText.first().innerText();
-    this.log(`Замовлення створено: ${createdText}`);
+    const successMessage = (await this.orderCreatedText.first().innerText()).trim();
+    const orderNumberMatch = successMessage.match(/Замовлення №\s*([\d-]+)/);
+    const businessOrderNumber = orderNumberMatch?.[1]?.trim();
+
+    if (!businessOrderNumber) {
+      throw new Error(
+        `Не вдалося визначити номер створеного замовлення з тексту "${successMessage}"`,
+      );
+    }
+
+    this.log(
+      `Замовлення створено: номер="${businessOrderNumber}", draftOrderId="${businessDraftOrderId}"`,
+    );
+
+    return {
+      businessOrderNumber,
+      businessDraftOrderId,
+      successMessage,
+    };
+  }
+
+  async submitOrder(): Promise<void> {
+    await this.submitOrderAndCapture();
   }
 }
