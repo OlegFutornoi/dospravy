@@ -434,6 +434,12 @@ export class CrmOrdersPage {
     this.log(`Сторінка orders повторно завантажена після модерації, карток у черзі: ${cardsCount}`);
   }
 
+  async reloadOrdersPage(): Promise<void> {
+    await this.page.reload();
+    await this.expectLoaded();
+    this.log('Сторінку orders примусово перезавантажено для актуалізації черги');
+  }
+
   async expectOrderMissingBySignature(signature: string): Promise<void> {
     await expect
       .poll(() => this.orderCardSignatures(), {

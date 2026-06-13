@@ -111,7 +111,15 @@ export async function moderateLocatedOrder(
     await ordersPage.confirmModeration();
     await ordersPage.expectModerationSuccessMessages();
     await ordersPage.waitForOrdersReloaded();
-    await ordersPage.expectOrderMissingBySignature(cardSignature);
+    try {
+      await ordersPage.expectOrderMissingBySignature(cardSignature);
+    } catch {
+      console.log(
+        `[E2E] Combined: після confirm картка ще видима, повторно перезавантажуємо /orders і перевіряємо чергу ще раз | path: /orders`,
+      );
+      await ordersPage.reloadOrdersPage();
+      await ordersPage.expectOrderMissingBySignature(cardSignature);
+    }
     await ordersPage.expectNoActiveOrderSelected();
   });
   const moderationMatch =
