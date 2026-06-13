@@ -24,11 +24,21 @@
 - `prod`:
   `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/smoke/order-moderation.smoke.spec.ts --project=chromium`
 
+## Запуск тільки crm contractor create smoke
+
+- `dev`:
+  `APP_AREA=crm TEST_ENV=dev npx playwright test tests/e2e/crm/smoke/contractor-create.smoke.spec.ts --project=chromium`
+- `stage`:
+  `APP_AREA=crm TEST_ENV=stage npx playwright test tests/e2e/crm/smoke/contractor-create.smoke.spec.ts --project=chromium`
+- `prod`:
+  `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/smoke/contractor-create.smoke.spec.ts --project=chromium`
+
 ## Дані для запуску
 
 - Дані логіну зберігаються в `data/<env>/crm/auth.json`
 - Для зміни акаунта достатньо оновити `auth.emailPassword.email` і `auth.emailPassword.password`
 - Перед запуском на `dev` або `prod` потрібно внести валідні дані в `data/dev/crm/auth.json` або `data/prod/crm/auth.json`
+- Дані для створення контрактора зберігаються в `data/<env>/crm/test-data.json` у блоці `contractor.create`
 
 ## Архітектура orders
 

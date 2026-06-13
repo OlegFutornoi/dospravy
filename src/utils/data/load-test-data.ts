@@ -62,6 +62,21 @@ export interface TestDataFile {
       employeesNeeded: number;
     };
   };
+  contractor?: {
+    create: {
+      firstNames: string[];
+      lastNames: string[];
+      sources: string[];
+      genders: string[];
+      cities: string[];
+      specializations: string[];
+      commentTemplates: string[];
+      phone: {
+        prefix: string;
+        digitsCount: number;
+      };
+    };
+  };
   order?: {
     create: {
       step2: {
@@ -255,6 +270,39 @@ function validateJobPosting(
   };
 }
 
+function validateContractorCreate(
+  value: unknown,
+  pathName: string,
+): NonNullable<TestDataFile['contractor']>['create'] {
+  const root = ensureRecord(value, pathName);
+  const phone = ensureRecord(root.phone, `${pathName}.phone`);
+
+  return {
+    firstNames: ensureStringArray(root.firstNames, `${pathName}.firstNames`),
+    lastNames: ensureStringArray(root.lastNames, `${pathName}.lastNames`),
+    sources: ensureStringArray(root.sources, `${pathName}.sources`),
+    genders: ensureStringArray(root.genders, `${pathName}.genders`),
+    cities: ensureStringArray(root.cities, `${pathName}.cities`),
+    specializations: ensureStringArray(root.specializations, `${pathName}.specializations`),
+    commentTemplates: ensureStringArray(root.commentTemplates, `${pathName}.commentTemplates`),
+    phone: {
+      prefix: ensureString(phone.prefix, `${pathName}.phone.prefix`),
+      digitsCount: ensureNumber(phone.digitsCount, `${pathName}.phone.digitsCount`),
+    },
+  };
+}
+
+function validateContractor(
+  value: unknown,
+  pathName: string,
+): NonNullable<TestDataFile['contractor']> {
+  const root = ensureRecord(value, pathName);
+
+  return {
+    create: validateContractorCreate(root.create, `${pathName}.create`),
+  };
+}
+
 function validateOrderCreate(
   value: unknown,
   pathName: string,
@@ -326,6 +374,10 @@ function validateTestDataFile(data: unknown): TestDataFile {
     root.jobPosting !== undefined
       ? validateJobPosting(root.jobPosting, 'test-data.json.jobPosting')
       : undefined;
+  const contractor =
+    root.contractor !== undefined
+      ? validateContractor(root.contractor, 'test-data.json.contractor')
+      : undefined;
   const order =
     root.order !== undefined ? validateOrder(root.order, 'test-data.json.order') : undefined;
 
@@ -346,6 +398,7 @@ function validateTestDataFile(data: unknown): TestDataFile {
       countryCode: ensureString(defaults.countryCode, 'test-data.json.defaults.countryCode'),
     },
     jobPosting,
+    contractor,
     order,
   };
 }
