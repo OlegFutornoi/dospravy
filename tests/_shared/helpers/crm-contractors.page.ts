@@ -125,10 +125,6 @@ export class CrmContractorsPage {
       .first();
   }
 
-  private contractorRowByText(text: string): Locator {
-    return this.page.locator('.MuiTableRow-root').filter({ hasText: text }).first();
-  }
-
   private async contractorRowTexts(): Promise<string[]> {
     return this.page
       .locator('.MuiTableRow-root')
