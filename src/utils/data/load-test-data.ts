@@ -77,6 +77,23 @@ export interface TestDataFile {
       };
     };
   };
+  company?: {
+    create: {
+      companyNames: string[];
+      descriptions: string[];
+      securityContactNames: string[];
+      hrNames: string[];
+      supervisorNames: string[];
+      email: {
+        domain: string;
+        localPrefixes: string[];
+      };
+      phone: {
+        prefix: string;
+        digitsCount: number;
+      };
+    };
+  };
   order?: {
     create: {
       step2: {
@@ -303,6 +320,42 @@ function validateContractor(
   };
 }
 
+function validateCompanyCreate(
+  value: unknown,
+  pathName: string,
+): NonNullable<TestDataFile['company']>['create'] {
+  const root = ensureRecord(value, pathName);
+  const email = ensureRecord(root.email, `${pathName}.email`);
+  const phone = ensureRecord(root.phone, `${pathName}.phone`);
+
+  return {
+    companyNames: ensureStringArray(root.companyNames, `${pathName}.companyNames`),
+    descriptions: ensureStringArray(root.descriptions, `${pathName}.descriptions`),
+    securityContactNames: ensureStringArray(
+      root.securityContactNames,
+      `${pathName}.securityContactNames`,
+    ),
+    hrNames: ensureStringArray(root.hrNames, `${pathName}.hrNames`),
+    supervisorNames: ensureStringArray(root.supervisorNames, `${pathName}.supervisorNames`),
+    email: {
+      domain: ensureString(email.domain, `${pathName}.email.domain`),
+      localPrefixes: ensureStringArray(email.localPrefixes, `${pathName}.email.localPrefixes`),
+    },
+    phone: {
+      prefix: ensureString(phone.prefix, `${pathName}.phone.prefix`),
+      digitsCount: ensureNumber(phone.digitsCount, `${pathName}.phone.digitsCount`),
+    },
+  };
+}
+
+function validateCompany(value: unknown, pathName: string): NonNullable<TestDataFile['company']> {
+  const root = ensureRecord(value, pathName);
+
+  return {
+    create: validateCompanyCreate(root.create, `${pathName}.create`),
+  };
+}
+
 function validateOrderCreate(
   value: unknown,
   pathName: string,
@@ -378,6 +431,10 @@ function validateTestDataFile(data: unknown): TestDataFile {
     root.contractor !== undefined
       ? validateContractor(root.contractor, 'test-data.json.contractor')
       : undefined;
+  const company =
+    root.company !== undefined
+      ? validateCompany(root.company, 'test-data.json.company')
+      : undefined;
   const order =
     root.order !== undefined ? validateOrder(root.order, 'test-data.json.order') : undefined;
 
@@ -399,6 +456,7 @@ function validateTestDataFile(data: unknown): TestDataFile {
     },
     jobPosting,
     contractor,
+    company,
     order,
   };
 }
