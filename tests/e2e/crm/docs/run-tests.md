@@ -42,6 +42,17 @@
 - `prod`:
   `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/smoke/company-create.smoke.spec.ts --project=chromium`
 
+## Запуск crm regression набору
+
+- `dev`:
+  `APP_AREA=crm TEST_ENV=dev npx playwright test tests/e2e/crm/regression/crm.regression.spec.ts --project=chromium`
+- `stage`:
+  `APP_AREA=crm TEST_ENV=stage npx playwright test tests/e2e/crm/regression/crm.regression.spec.ts --project=chromium`
+- `prod`:
+  `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/regression/crm.regression.spec.ts --project=chromium`
+- Regression файл виконується послідовно і є точкою розширення для наступних CRM сценаріїв
+- Поточний порядок сценаріїв: `login -> company create -> contractor create -> order moderation`
+
 ## Дані для запуску
 
 - Дані логіну зберігаються в `data/<env>/crm/auth.json`
