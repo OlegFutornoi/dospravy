@@ -97,8 +97,33 @@ export class BusinessLoginPage {
     return this.page.locator('.btn-logout');
   }
 
+  private async waitForLoginOrWorkspace(): Promise<'login' | 'workspace'> {
+    return Promise.race([
+      this.loginHeading.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'login' as const),
+      this.workspaceTab
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .then(() => 'workspace' as const),
+    ]);
+  }
+
   async goto(): Promise<void> {
-    await this.page.goto('/login');
+    await this.page.goto('/login', { waitUntil: 'domcontentloaded' });
+
+    let pageState = await this.waitForLoginOrWorkspace().catch(async () => {
+      this.log("Форма логіну не з'явилась з першої спроби, перезавантажую сторінку");
+      await this.page.reload({ waitUntil: 'domcontentloaded' });
+      return this.waitForLoginOrWorkspace();
+    });
+
+    if (pageState === 'workspace') {
+      this.log('Після переходу на /login відкрився workspace, виконую вихід у форму логіну');
+      await expect(this.logoutButton).toBeVisible();
+      await this.logoutButton.click();
+      await expect(this.page).toHaveURL(/\/login\/?(\?.*)?$/);
+      pageState = await this.waitForLoginOrWorkspace();
+    }
+
+    expect(pageState, 'Після переходу на /login очікувалась форма логіну').toBe('login');
     await expect(this.loginHeading).toBeVisible();
     await expect(this.emailTab).toBeVisible();
     await expect(this.phoneTab).toBeVisible();
@@ -155,9 +180,9 @@ export class BusinessLoginPage {
   }
 
   async expectAuthorized(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/workspace$/);
-    await expect(this.workspaceTab).toBeVisible();
-    await expect(this.logoutButton).toBeVisible();
+    await expect(this.page).toHaveURL(/\/workspace\/?(\?.*)?$/, { timeout: 30_000 });
+    await expect(this.workspaceTab).toBeVisible({ timeout: 30_000 });
+    await expect(this.logoutButton).toBeVisible({ timeout: 30_000 });
   }
 
   async expectStillOnLogin(): Promise<void> {

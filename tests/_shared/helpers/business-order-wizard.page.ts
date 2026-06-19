@@ -445,6 +445,14 @@ export class BusinessOrderWizardPage {
     return `${year}-${month}-${day}`;
   }
 
+  private getRandomFutureDateWithinDays(maxDaysAhead: number): Date {
+    const minDaysAhead = 1;
+    const offsetDays = Math.floor(Math.random() * (maxDaysAhead - minDaysAhead + 1)) + minDaysAhead;
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + offsetDays);
+    return targetDate;
+  }
+
   private getBusinessDraftOrderId(): string {
     const match = this.page.url().match(/\/order\/([^/?#]+)/);
     if (!match?.[1]) {
@@ -606,9 +614,9 @@ export class BusinessOrderWizardPage {
     await expect(this.workPeriodInput).toBeVisible();
     await this.workPeriodInput.click();
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateTitle = this.formatDateISO(tomorrow);
+    const targetWorkDate = this.getRandomFutureDateWithinDays(10);
+    const dateTitle = this.formatDateISO(targetWorkDate);
+    this.log(`Крок 5: Обрано випадкову дату заявки = ${dateTitle}`);
 
     const pickerDropdown = this.page.locator('.ant-picker-dropdown').last();
     await expect(pickerDropdown).toBeVisible();

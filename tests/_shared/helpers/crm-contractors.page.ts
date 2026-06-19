@@ -131,8 +131,8 @@ export class CrmContractorsPage {
       .evaluateAll((rows) => rows.map((row) => row.textContent?.replace(/\s+/g, ' ').trim() ?? ''));
   }
 
-  async goto(): Promise<void> {
-    await this.page.goto('/contractors');
+  async goto(entryUrl = '/contractors'): Promise<void> {
+    await this.page.goto(entryUrl);
     await this.expectLoaded();
     this.log('Відкрито CRM сторінку кандидатів');
   }

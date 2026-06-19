@@ -7,6 +7,7 @@ export async function createCompanyWithRetry(
   page: Page,
   companyCreateData: CompanyCreateData,
   seed = Date.now(),
+  entryUrl = '/companies',
 ): Promise<GeneratedCrmCompanyData> {
   const companiesPage = new CrmCompaniesPage(page);
   let company = generateCrmCompanyData(companyCreateData, seed, 0);
@@ -22,7 +23,7 @@ export async function createCompanyWithRetry(
     /^[a-z0-9.]+@gmail\.com$/i,
   );
 
-  await companiesPage.goto();
+  await companiesPage.goto(entryUrl);
   await companiesPage.openCreateCompanyForm();
   await companiesPage.fillCreateCompanyForm(company);
 

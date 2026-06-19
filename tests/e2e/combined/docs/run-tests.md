@@ -16,6 +16,12 @@ APP_AREA=combined TEST_ENV=stage npx playwright test tests/e2e/combined --projec
 APP_AREA=combined TEST_ENV=stage npx playwright test tests/e2e/combined/smoke/business-create-crm-moderate.smoke.spec.ts --project=chromium
 ```
 
+```bash
+APP_AREA=combined TEST_ENV=stage npx playwright test tests/e2e/full.regression.spec.ts --project=chromium
+```
+
+- `tests/e2e/full.regression.spec.ts` це кореневий повний regression-файл, який послідовно запускає `business -> crm -> combined`
+
 ## Оточення
 
 - `dev`: `APP_AREA=combined TEST_ENV=dev ...`

@@ -115,8 +115,8 @@ export class CrmCompaniesPage {
     await input.pressSequentially(phone);
   }
 
-  async goto(): Promise<void> {
-    await this.page.goto('/companies');
+  async goto(entryUrl = '/companies'): Promise<void> {
+    await this.page.goto(entryUrl);
     await this.expectLoaded();
     this.log('Відкрито CRM сторінку компаній');
   }

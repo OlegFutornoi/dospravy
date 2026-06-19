@@ -292,8 +292,8 @@ export class CrmOrdersPage {
     return this.page.getByRole('button', { name: 'Додати теги для R2R' });
   }
 
-  async goto(): Promise<void> {
-    await this.page.goto('/orders');
+  async goto(entryUrl = '/orders'): Promise<void> {
+    await this.page.goto(entryUrl);
     await this.expectLoaded();
     this.log('Відкрито CRM сторінку модерації замовлень');
   }

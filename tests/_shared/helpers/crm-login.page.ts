@@ -35,8 +35,8 @@ export class CrmLoginPage {
     return this.page.locator('.private-layout, .ant-layout-sider, aside, nav').first();
   }
 
-  async goto(): Promise<void> {
-    await this.page.goto('/login');
+  async goto(entryUrl = '/login'): Promise<void> {
+    await this.page.goto(entryUrl);
     await this.expectLoginPageVisible();
     this.log('Відкрито CRM сторінку логіну');
   }
