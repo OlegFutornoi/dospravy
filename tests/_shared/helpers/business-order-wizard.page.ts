@@ -200,11 +200,43 @@ export class BusinessOrderWizardPage {
     return this.page.getByRole('button', { name: 'Замовити' });
   }
 
+  private async waitForOrderWizardOpened(): Promise<void> {
+    await Promise.race([
+      expect(this.createOrderHeading).toBeVisible({ timeout: 15_000 }),
+      expect(this.companyNameInput).toBeVisible({ timeout: 15_000 }),
+      this.page.waitForURL(/\/order\/[^/?#]+(?:[/?#].*)?$/, { timeout: 15_000 }),
+    ]);
+  }
+
   async goto(): Promise<void> {
-    await this.page.goto('/workspace');
-    await expect(this.createOrderMenuItem).toBeVisible();
-    await this.createOrderMenuItem.click();
-    await expect(this.createOrderHeading).toBeVisible();
+    await this.page.goto('/workspace', { waitUntil: 'domcontentloaded' });
+    await expect(this.createOrderMenuItem).toBeVisible({ timeout: 15_000 });
+
+    let isWizardOpened = false;
+
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      await this.createOrderMenuItem.click();
+
+      try {
+        await this.waitForOrderWizardOpened();
+        isWizardOpened = true;
+        break;
+      } catch {
+        this.log(
+          `Майстер створення замовлення не відкрився після кліку, повторюю спробу ${attempt}/2`,
+        );
+        await this.page.goto('/workspace', { waitUntil: 'domcontentloaded' });
+        await expect(this.createOrderMenuItem).toBeVisible({ timeout: 15_000 });
+      }
+    }
+
+    expect(
+      isWizardOpened,
+      'Не вдалося відкрити майстер створення замовлення зі сторінки workspace',
+    ).toBe(true);
+    await expect(this.createOrderHeading.or(this.companyNameInput).first()).toBeVisible({
+      timeout: 15_000,
+    });
     this.log('Відкрито майстер створення замовлення');
   }
 

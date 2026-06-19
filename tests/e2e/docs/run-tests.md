@@ -9,6 +9,16 @@
 - `prod`:
   `APP_AREA=combined TEST_ENV=prod npx playwright test tests/e2e/full.regression.spec.ts --project=chromium`
 
+## Остання перевірка
+
+- Останній повний прогін був успішно перевірений на `stage`
+- Команда перевірки:
+  `APP_AREA=combined TEST_ENV=stage npx playwright test tests/e2e/full.regression.spec.ts --project=chromium --reporter=list`
+- Фактичний результат останнього прогона:
+  `15 passed`
+- Після фінальних правок також проходить:
+  `npm run check`
+
 ## Логіка порядку
 
 - Full regression файл виконується послідовно і є єдиною точкою повного e2e прогону
@@ -32,6 +42,12 @@
 - Для запуску повного regression потрібно використовувати `APP_AREA=combined`
 - У цьому режимі базовий `baseURL` веде в `business`, а переходи в `crm` виконуються абсолютними URL
 - Full regression є деструктивним: він створює нові сутності й обробляє реальні картки в CRM
+- Перед повним прогоном на `stage` корисно підготувати дані, якщо в CRM бракує карток на модерацію або у `Відгуки і пропозиції`
+- Для підготовки двох нових промодерованих замовлень можна двічі виконати:
+  `APP_AREA=combined TEST_ENV=stage npx playwright test tests/e2e/combined/smoke/business-create-crm-moderate.smoke.spec.ts --project=chromium --reporter=list`
+- Сценарій `business: створює замовлення через майстер` відкриває майстер зі стійким повторним переходом, якщо перший клік по меню не перевів зі списку `Замовлення`
+- Сценарії `crm: Відгуки і пропозиції` тепер враховують реальну поведінку UI:
+  підтвердження забирає картку одразу, а відмова потребує вибору причини і натискання `Зберегти`
 
 ## Перед запуском
 

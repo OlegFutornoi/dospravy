@@ -193,6 +193,14 @@ export class CrmFeedbackSuggestionsPage {
     return this.activeSuggestionCard.locator('button.btn');
   }
 
+  get rejectReasonCombobox(): Locator {
+    return this.activeSuggestionCard.locator('[role="combobox"]').first();
+  }
+
+  get rejectReasonSaveButton(): Locator {
+    return this.activeSuggestionCard.getByRole('button', { name: 'Зберегти' }).first();
+  }
+
   decisionButtonsForCard(card: Locator): Locator {
     return card.locator('button.btn');
   }
@@ -377,11 +385,34 @@ export class CrmFeedbackSuggestionsPage {
     await expect(actionButton).toBeVisible({ timeout: 15_000 });
     await expect(actionButton).toBeEnabled({ timeout: 15_000 });
     await actionButton.click();
+
+    if (actionIndex === 1) {
+      await this.completeRejectReasonFlow();
+    }
+
     this.log(
       `Виконано дію для активної пропозиції: action="${actionDescription}", actionIndex=${actionIndex}, availableButtons="${normalizedButtons.join(
         ' | ',
       )}", selectedName="${activeCardDetails.name}", selectedPhone="${activeCardDetails.phone}", selectedCity="${activeCardDetails.city}", selectedSpecialization="${activeCardDetails.specialization}", selectedFullText="${activeCardDetails.fullText}"`,
     );
+  }
+
+  private async completeRejectReasonFlow(): Promise<void> {
+    const combobox = this.rejectReasonCombobox;
+    await expect(combobox).toBeVisible({ timeout: 15_000 });
+    await combobox.click();
+
+    const dropdownOptions = this.page
+      .locator('.ant-select-dropdown .ant-select-item-option')
+      .filter({ hasNot: this.page.locator('.ant-select-item-option-disabled') });
+    const firstOption = dropdownOptions.first();
+    await expect(firstOption).toBeVisible({ timeout: 15_000 });
+    const selectedReason = this.normalizeText(await firstOption.textContent());
+    await firstOption.click();
+
+    await expect(this.rejectReasonSaveButton).toBeEnabled({ timeout: 15_000 });
+    await this.rejectReasonSaveButton.click();
+    this.log(`Для відмови обрано причину "${selectedReason}" і натиснуто "Зберегти"`);
   }
 
   async expectSuggestionMissingBySignature(signature: string): Promise<void> {
