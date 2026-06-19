@@ -42,6 +42,15 @@
 - `prod`:
   `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/smoke/company-create.smoke.spec.ts --project=chromium`
 
+## Запуск тільки crm change proposal confirmation smoke
+
+- `dev`:
+  `APP_AREA=crm TEST_ENV=dev npx playwright test tests/e2e/crm/smoke/change-proposal-confirmation.smoke.spec.ts --project=chromium`
+- `stage`:
+  `APP_AREA=crm TEST_ENV=stage npx playwright test tests/e2e/crm/smoke/change-proposal-confirmation.smoke.spec.ts --project=chromium`
+- `prod`:
+  `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/smoke/change-proposal-confirmation.smoke.spec.ts --project=chromium`
+
 ## Запуск crm regression набору
 
 - `dev`:
@@ -51,7 +60,11 @@
 - `prod`:
   `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/regression/crm.regression.spec.ts --project=chromium`
 - Regression файл виконується послідовно і є точкою розширення для наступних CRM сценаріїв
-- Поточний порядок сценаріїв: `login -> company create -> contractor create -> order moderation`
+- Поточний порядок сценаріїв: `login -> company create -> contractor create -> order moderation -> change proposal confirm -> change proposal reject`
+- У кінці regression є серія з двох послідовних сценаріїв для `Відгуки і пропозиції`:
+  `підтвердження першої картки -> відмова по наступній картці`
+- Очікуваний залишок карток після цієї серії рахується від стартової кількості карток у списку:
+  якщо на старті `3`, після двох дій лишається `1`; якщо на старті `2`, після двох дій лишається `0`
 
 ## Дані для запуску
 

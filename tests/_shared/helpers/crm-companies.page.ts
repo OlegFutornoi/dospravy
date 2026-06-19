@@ -123,7 +123,7 @@ export class CrmCompaniesPage {
 
   async expectLoaded(): Promise<void> {
     await expect(this.companiesHeading).toBeVisible({ timeout: 15_000 });
-    await expect(this.activeMenuItem).toHaveAttribute('title', 'Сейлз (створення компанії)');
+    await expect(this.activeMenuItem).toHaveAttribute('title', 'Замовники, ролі і процеси');
     await expect(this.createCompanyButton).toBeVisible({ timeout: 15_000 });
     this.log('Сторінка companies завантажена');
   }

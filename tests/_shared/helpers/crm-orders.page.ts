@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
 export type CrmSidebarMenuTitle =
-  | 'Сейлз (створення компанії)'
+  | 'Замовники, ролі і процеси'
   | 'Модерація замовлень'
   | 'Замовлення і підбір'
   | 'Контроль змін'
