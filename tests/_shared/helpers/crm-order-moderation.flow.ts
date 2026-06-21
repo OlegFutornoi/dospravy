@@ -20,10 +20,10 @@ export async function moderateOrderWithPublicAccess(
     };
   }
 
+  const cardSignature = await ordersPage.orderCardSignatureByIndex(cardIndex);
   await ordersPage.openOrderCardByIndex(cardIndex);
 
   const orderId = await ordersPage.currentOrderId();
-  const cardSignature = await ordersPage.currentActiveCardSignature();
 
   await ordersPage.enablePublicAccess();
   await ordersPage.confirmModeration();

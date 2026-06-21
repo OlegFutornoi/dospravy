@@ -22,9 +22,8 @@ export async function locateOrderForModeration(
   createdOrder: CreatedOrderLifecycleSeed,
 ): Promise<{ ordersPage: CrmOrdersPage; locatedOrder: LocatedModerationOrder }> {
   const crmBaseUrl = getAppBaseUrl('crm', testEnv);
-  const crmOrdersUrl = `${crmBaseUrl}orders`;
 
-  await ensureCrmCabinetByEmailPassword(page, authData, crmOrdersUrl);
+  await ensureCrmCabinetByEmailPassword(page, authData, crmBaseUrl);
 
   const ordersPage = new CrmOrdersPage(page);
   const maxReloadAttempts = combinedFlowData.flows.orderLifecycle.maxReloadAttempts;
@@ -38,10 +37,10 @@ export async function locateOrderForModeration(
 
     const { responses } = await captureJsonApiResponsesWhile(page, async () => {
       if (attempt === 1) {
-        await ordersPage.gotoByUrl(crmOrdersUrl);
+        await ordersPage.openFromSidebar();
       } else {
-        await page.goto(crmOrdersUrl);
-        await ordersPage.expectLoaded();
+        await page.goto(crmBaseUrl);
+        await ordersPage.openFromSidebar();
       }
     });
 
@@ -104,7 +103,7 @@ export async function moderateLocatedOrder(
   ordersPage: CrmOrdersPage,
   locatedOrder: LocatedModerationOrder,
 ): Promise<ModeratedOrderLifecycleResult> {
-  const cardSignature = await ordersPage.currentActiveCardSignature();
+  const cardSignature = await ordersPage.orderCardSignatureByIndex(locatedOrder.queueIndex);
 
   const { responses } = await captureJsonApiResponsesWhile(page, async () => {
     await ordersPage.enablePublicAccess();

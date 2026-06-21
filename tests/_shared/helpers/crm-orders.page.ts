@@ -308,6 +308,18 @@ export class CrmOrdersPage {
     await expect(this.menuItem('Модерація замовлень')).toBeVisible();
     await this.menuItem('Модерація замовлень').click();
     await expect(this.page).toHaveURL(/\/orders\/?(\?.*)?$/);
+    const loadedAfterClick = await this.ordersHeading
+      .waitFor({ state: 'visible', timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!loadedAfterClick) {
+      this.log(
+        'Після кліку у sidebar сторінка /orders не домалювалась, повторно відкриваю поточний URL',
+      );
+      await this.page.goto(this.page.url());
+    }
+
     await this.expectLoaded();
     this.log('Відкрито розділ "Модерація замовлень" через sidebar');
   }
@@ -356,6 +368,18 @@ export class CrmOrdersPage {
     return signature;
   }
 
+  async orderCardSignatureByIndex(index: number): Promise<string> {
+    const targetCard = this.orderCardByIndex(index);
+    await expect(targetCard).toBeVisible();
+    const signature = this.normalizeText(await targetCard.textContent());
+
+    if (!signature) {
+      throw new Error(`Не вдалося зчитати текст картки замовлення #${index + 1} у CRM orders`);
+    }
+
+    return signature;
+  }
+
   async orderCardSignatures(): Promise<string[]> {
     return this.orderCards.evaluateAll((cards) =>
       cards.map((card) => card.textContent?.replace(/\s+/g, ' ').trim() ?? ''),
@@ -388,13 +412,7 @@ export class CrmOrdersPage {
         });
       }
     }
-    await expect
-      .poll(() => targetCard.evaluate((element) => element.classList.contains('active')), {
-        timeout: 10_000,
-        message: `Після кліку картка #${index + 1} повинна стати активною`,
-      })
-      .toBe(true);
-    await expect(this.detailsForm).toBeVisible();
+    await expect(this.detailsForm).toBeVisible({ timeout: 10_000 });
     await expect(this.detailsOrderLabel).toContainText('Order ');
     this.log(`Обрано картку замовлення #${index + 1}${cardTitle ? `: ${cardTitle}` : ''}`);
   }

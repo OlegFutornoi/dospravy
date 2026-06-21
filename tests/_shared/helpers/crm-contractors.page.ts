@@ -265,6 +265,14 @@ export class CrmContractorsPage {
 
   async openFromSidebar(): Promise<void> {
     this.logStep('Відкриваю розділ "Кандидати" через sidebar');
+    const alreadyOnContractorsPage = /\/contractors\/?(\?.*)?$/.test(this.page.url());
+
+    if (alreadyOnContractorsPage) {
+      await this.expectLoaded();
+      this.log('Сторінка кандидатів уже відкрита, повторний клік у sidebar не потрібен');
+      return;
+    }
+
     const loadWaiters = this.createContractorsLoadWaiters();
     await expect(this.contractorsMenuItem).toBeVisible({ timeout: 15_000 });
     await this.contractorsMenuItem.click();
