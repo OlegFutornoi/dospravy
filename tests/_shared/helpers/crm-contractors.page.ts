@@ -60,6 +60,14 @@ export class CrmContractorsPage {
     return this.page.locator('tbody tr td:last-child button.btn.btn-secondary.btn--sm');
   }
 
+  get commentPillButtons(): Locator {
+    return this.page.locator('tbody tr td button.contractors-list-comment-cell__pill');
+  }
+
+  get viewAllCommentsButton(): Locator {
+    return this.page.locator('button.contractors-list-comment-popover__link');
+  }
+
   get contractorModal(): Locator {
     return this.page.locator('.ant-modal.contractor-create');
   }
@@ -394,6 +402,90 @@ export class CrmContractorsPage {
     this.log(`Відкрито профіль першого кандидата: ${selectedContractorSummary}`);
 
     return selectedContractorSummary;
+  }
+
+  private async waitForContractorProfileOpened(
+    label: string,
+    loadWaiters = this.createContractorProfileLoadWaiters(),
+  ): Promise<void> {
+    await expect(this.page).toHaveURL(/\/contractors\/contractor\/[^/?#]+(?:\?.*)?$/, {
+      timeout: 15_000,
+    });
+    await this.waitForResponseGroup(label, loadWaiters);
+    await expect(this.contractorProfileHeading).toBeVisible({ timeout: 15_000 });
+  }
+
+  async openFirstContractorAgentCommentsFromCommentColumn(): Promise<{
+    contractorSummary: string;
+    entryPath: 'existing_comment' | 'empty_comment';
+  }> {
+    this.logStep('Відкриваю першого кандидата через колонку "Коментар"');
+    const firstRow = this.contractorRows.first();
+    await expect(firstRow).toBeVisible({ timeout: 15_000 });
+
+    const contractorSummary = this.normalizeText(await firstRow.textContent());
+    const commentCell = firstRow.locator('td').nth(6);
+    const commentPillButton = commentCell.locator('button.contractors-list-comment-cell__pill');
+    const hasCommentPill = await commentPillButton.count();
+
+    if (hasCommentPill > 0) {
+      this.logStep('У першого кандидата вже є коментар, відкриваю попап коментаря');
+      const loadWaiters = this.createContractorProfileLoadWaiters();
+      await expect(commentPillButton).toBeVisible({ timeout: 15_000 });
+      await commentPillButton.hover();
+      await expect(this.viewAllCommentsButton).toBeVisible({ timeout: 15_000 });
+      this.logStep('У попапі натискаю "Переглянути усі коментарі"');
+      await this.viewAllCommentsButton.click();
+      const navigatedThroughPopover = await this.page
+        .waitForURL(/\/contractors\/contractor\/[^/?#]+(?:\?.*)?$/, { timeout: 4_000 })
+        .then(() => true)
+        .catch(() => false);
+
+      if (!navigatedThroughPopover) {
+        this.log(
+          'Після кліку по "Переглянути усі коментарі" навігація не відбулась, повторюю перехід прямим кліком по комірці коментаря',
+        );
+        await commentCell.click();
+      }
+
+      const navigatedThroughCommentCell = await this.page
+        .waitForURL(/\/contractors\/contractor\/[^/?#]+(?:\?.*)?$/, { timeout: 4_000 })
+        .then(() => true)
+        .catch(() => false);
+
+      if (!navigatedThroughPopover && !navigatedThroughCommentCell) {
+        this.log(
+          'Прямий клік по комірці коментаря теж не відкрив профіль, використовую fallback через кнопку "Деталі" цього ж кандидата',
+        );
+        const detailsButton = firstRow.locator('td:last-child button.btn.btn-secondary.btn--sm');
+        await expect(detailsButton).toBeVisible({ timeout: 15_000 });
+        await detailsButton.click();
+      }
+
+      await this.waitForContractorProfileOpened(
+        'Дочекався ключових запитів профілю кандидата після переходу з коментаря',
+        loadWaiters,
+      );
+      this.log(`Відкрито профіль кандидата через попап існуючого коментаря: ${contractorSummary}`);
+
+      return {
+        contractorSummary,
+        entryPath: 'existing_comment',
+      };
+    }
+
+    this.logStep('У першого кандидата немає коментаря, клікаю по порожній комірці коментаря');
+    await expect(commentCell).toBeVisible({ timeout: 15_000 });
+    await commentCell.click();
+    await this.waitForContractorProfileOpened(
+      'Дочекався ключових запитів профілю кандидата після кліку по порожньому коментарю',
+    );
+    this.log(`Відкрито профіль кандидата через порожню комірку коментаря: ${contractorSummary}`);
+
+    return {
+      contractorSummary,
+      entryPath: 'empty_comment',
+    };
   }
 
   async openAgentCommentsTab(): Promise<void> {

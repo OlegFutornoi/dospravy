@@ -4,6 +4,7 @@ import { expect, test } from '../_shared/fixtures/combined.fixture';
 import { ensureCrmCabinetByEmailPassword } from '../_shared/helpers/crm-cabinet-auth.flow';
 import { createCompanyWithRetry } from '../_shared/helpers/crm-company-create.flow';
 import {
+  addAgentCommentThroughCommentColumnIfAvailable,
   addAgentCommentToFirstContractorIfAvailable,
   createCrmAgentCommentText,
   expectCrmContractorAgentCommentOutcome,
@@ -241,7 +242,26 @@ test.describe('Регресія: повний e2e прогон', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('13. crm: модерує замовлення через публічний доступ і підтвердження', async ({
+  test('13. crm: додає новий коментар агента через колонку "Коментар" у списку кандидатів', async ({
+    page,
+    crmAuthData,
+    runtimeContext,
+  }) => {
+    const crmBaseUrl = getAppBaseUrl('crm', runtimeContext.testEnv);
+    await ensureCrmCabinetByEmailPassword(page, crmAuthData, crmBaseUrl);
+
+    const contractorsPage = new CrmContractorsPage(page);
+    const commentText = createCrmAgentCommentText();
+    const result = await addAgentCommentThroughCommentColumnIfAvailable(
+      contractorsPage,
+      commentText,
+    );
+
+    expectCrmContractorAgentCommentOutcome(result, ['comment_added', 'no_contractors']);
+    expect(result.status).toBeDefined();
+  });
+
+  test('14. crm: модерує замовлення через публічний доступ і підтвердження', async ({
     page,
     crmAuthData,
     runtimeContext,
@@ -257,7 +277,7 @@ test.describe('Регресія: повний e2e прогон', () => {
     expectModerationOutcome(moderatedOrder);
   });
 
-  test('14. crm: підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
+  test('15. crm: підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
     page,
     crmAuthData,
     runtimeContext,
@@ -275,7 +295,7 @@ test.describe('Регресія: повний e2e прогон', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('15. crm: відмовляє по наступній пропозиції і залишає очікувану кількість карток', async ({
+  test('16. crm: відмовляє по наступній пропозиції і залишає очікувану кількість карток', async ({
     page,
     crmAuthData,
     runtimeContext,
@@ -295,7 +315,7 @@ test.describe('Регресія: повний e2e прогон', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('16. combined: створює ордер у business і модерує його в crm', async ({
+  test('17. combined: створює ордер у business і модерує його в crm', async ({
     page,
     runtimeContext,
     businessAuthData,

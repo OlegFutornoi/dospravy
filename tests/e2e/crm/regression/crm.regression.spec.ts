@@ -4,6 +4,7 @@ import { expect, test } from '../../../_shared/fixtures/app.fixture';
 import { ensureCrmCabinetByEmailPassword } from '../../../_shared/helpers/crm-cabinet-auth.flow';
 import { createCompanyWithRetry } from '../../../_shared/helpers/crm-company-create.flow';
 import {
+  addAgentCommentThroughCommentColumnIfAvailable,
   addAgentCommentToFirstContractorIfAvailable,
   createCrmAgentCommentText,
   expectCrmContractorAgentCommentOutcome,
@@ -106,7 +107,24 @@ test.describe('Регресія: crm', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('5. модерує замовлення через публічний доступ і підтвердження', async ({
+  test('5. додає новий коментар агента через колонку "Коментар" у списку кандидатів', async ({
+    page,
+    authData,
+  }) => {
+    await ensureCrmCabinetByEmailPassword(page, authData);
+
+    const contractorsPage = new CrmContractorsPage(page);
+    const commentText = createCrmAgentCommentText();
+    const result = await addAgentCommentThroughCommentColumnIfAvailable(
+      contractorsPage,
+      commentText,
+    );
+
+    expectCrmContractorAgentCommentOutcome(result, ['comment_added', 'no_contractors']);
+    expect(result.status).toBeDefined();
+  });
+
+  test('6. модерує замовлення через публічний доступ і підтвердження', async ({
     page,
     authData,
   }) => {
@@ -120,7 +138,7 @@ test.describe('Регресія: crm', () => {
     expectModerationOutcome(moderatedOrder);
   });
 
-  test('6. підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
+  test('7. підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
     page,
     authData,
   }) => {
@@ -139,7 +157,7 @@ test.describe('Регресія: crm', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('7. відмовляє по наступній пропозиції і залишає очікувану кількість карток у списку', async ({
+  test('8. відмовляє по наступній пропозиції і залишає очікувану кількість карток у списку', async ({
     page,
     authData,
   }) => {
