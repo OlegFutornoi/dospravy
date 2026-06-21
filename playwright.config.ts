@@ -24,6 +24,7 @@ const baseUrls: Record<AppArea, Record<TestEnv, string>> = {
 const selectedApp = (process.env.APP_AREA ?? 'business') as AppArea;
 const selectedEnv = (process.env.TEST_ENV ?? process.env.BUSINESS_ENV ?? 'stage') as TestEnv;
 const baseURL = baseUrls[selectedApp]?.[selectedEnv] ?? baseUrls.business.stage;
+const isHeadedRun = process.argv.includes('--headed');
 
 /**
  * Read environment variables from file.
@@ -65,7 +66,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(isHeadedRun
+          ? {
+              viewport: { width: 1728, height: 1020 },
+              screen: { width: 1728, height: 1117 },
+              launchOptions: {
+                args: ['--start-maximized', '--window-size=1728,1117'],
+              },
+            }
+          : {}),
+      },
     },
 
     /* Test against mobile viewports. */

@@ -33,6 +33,15 @@
 - `prod`:
   `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/smoke/contractor-create.smoke.spec.ts --project=chromium`
 
+## Запуск тільки crm contractor agent comment smoke
+
+- `dev`:
+  `APP_AREA=crm TEST_ENV=dev npx playwright test tests/e2e/crm/smoke/contractor-agent-comment.smoke.spec.ts --project=chromium`
+- `stage`:
+  `APP_AREA=crm TEST_ENV=stage npx playwright test tests/e2e/crm/smoke/contractor-agent-comment.smoke.spec.ts --project=chromium`
+- `prod`:
+  `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/smoke/contractor-agent-comment.smoke.spec.ts --project=chromium`
+
 ## Запуск тільки crm company create smoke
 
 - `dev`:
@@ -60,11 +69,14 @@
 - `prod`:
   `APP_AREA=crm TEST_ENV=prod npx playwright test tests/e2e/crm/regression/crm.regression.spec.ts --project=chromium`
 - Regression файл виконується послідовно і є точкою розширення для наступних CRM сценаріїв
-- Поточний порядок сценаріїв: `login -> company create -> contractor create -> order moderation -> change proposal confirm -> change proposal reject`
+- Поточний порядок сценаріїв:
+  `login -> company create -> contractor create -> contractor agent comment -> order moderation -> change proposal confirm -> change proposal reject`
 - У кінці regression є серія з двох послідовних сценаріїв для `Відгуки і пропозиції`:
   `підтвердження першої картки -> відмова по наступній картці`
 - Очікуваний залишок карток після цієї серії рахується від стартової кількості карток у списку:
   якщо на старті `3`, після двох дій лишається `1`; якщо на старті `2`, після двох дій лишається `0`
+- Сценарій `contractor agent comment` працює через наявний CRM login helper, відкриває `Кандидати` через sidebar, чекає ключові API запити сторінки і додає коментар у профілі першого кандидата
+- Якщо на сторінці `Кандидати` немає жодного запису, тест логуватиме це повідомлення і завершиться без падіння
 
 ## Дані для запуску
 

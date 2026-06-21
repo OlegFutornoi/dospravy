@@ -18,6 +18,7 @@
   `15 passed`
 - Після фінальних правок також проходить:
   `npm run check`
+- Після додавання сценарію `crm contractor agent comment` full regression містить `16` тестів і потребує наступного повного перепрогона для фіксації нового фінального результату
 
 ## Логіка порядку
 
@@ -33,7 +34,7 @@
 - `business`:
   `login smoke + login regression + forgot password + order create`
 - `crm`:
-  `login + company create + contractor create + order moderation + change proposal confirm + change proposal reject`
+  `login + company create + contractor create + contractor agent comment + order moderation + change proposal confirm + change proposal reject`
 - `combined`:
   `business create -> crm moderate`
 
@@ -46,6 +47,8 @@
 - Для підготовки двох нових промодерованих замовлень можна двічі виконати:
   `APP_AREA=combined TEST_ENV=stage npx playwright test tests/e2e/combined/smoke/business-create-crm-moderate.smoke.spec.ts --project=chromium --reporter=list`
 - Сценарій `business: створює замовлення через майстер` відкриває майстер зі стійким повторним переходом, якщо перший клік по меню не перевів зі списку `Замовлення`
+- Сценарій `crm: додає новий коментар агента в профілі першого кандидата` відкриває `Кандидати` через sidebar, чекає ключові CRM API-запити і зберігає коментар у вкладці `Комент. агентів`
+- Якщо на сторінці `Кандидати` немає записів, сценарій завершується без падіння з інформативним логом
 - Сценарії `crm: Відгуки і пропозиції` тепер враховують реальну поведінку UI:
   підтвердження забирає картку одразу, а відмова потребує вибору причини і натискання `Зберегти`
 

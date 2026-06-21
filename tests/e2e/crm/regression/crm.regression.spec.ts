@@ -3,6 +3,11 @@ import { generateCrmContractorData } from '../../../_shared/factories/crm-contra
 import { expect, test } from '../../../_shared/fixtures/app.fixture';
 import { ensureCrmCabinetByEmailPassword } from '../../../_shared/helpers/crm-cabinet-auth.flow';
 import { createCompanyWithRetry } from '../../../_shared/helpers/crm-company-create.flow';
+import {
+  addAgentCommentToFirstContractorIfAvailable,
+  createCrmAgentCommentText,
+  expectCrmContractorAgentCommentOutcome,
+} from '../../../_shared/helpers/crm-contractor-agent-comments.flow';
 import { CrmContractorsPage } from '../../../_shared/helpers/crm-contractors.page';
 import {
   expectFeedbackSuggestionOutcome,
@@ -90,7 +95,18 @@ test.describe('Регресія: crm', () => {
     await contractorsPage.expectContractorVisibleInTable(contractor);
   });
 
-  test('4. модерує замовлення через публічний доступ і підтвердження', async ({
+  test('4. додає новий коментар агента в профілі першого кандидата', async ({ page, authData }) => {
+    await ensureCrmCabinetByEmailPassword(page, authData);
+
+    const contractorsPage = new CrmContractorsPage(page);
+    const commentText = createCrmAgentCommentText();
+    const result = await addAgentCommentToFirstContractorIfAvailable(contractorsPage, commentText);
+
+    expectCrmContractorAgentCommentOutcome(result, ['comment_added', 'no_contractors']);
+    expect(result.status).toBeDefined();
+  });
+
+  test('5. модерує замовлення через публічний доступ і підтвердження', async ({
     page,
     authData,
   }) => {
@@ -104,7 +120,7 @@ test.describe('Регресія: crm', () => {
     expectModerationOutcome(moderatedOrder);
   });
 
-  test('5. підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
+  test('6. підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
     page,
     authData,
   }) => {
@@ -123,7 +139,7 @@ test.describe('Регресія: crm', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('6. відмовляє по наступній пропозиції і залишає очікувану кількість карток у списку', async ({
+  test('7. відмовляє по наступній пропозиції і залишає очікувану кількість карток у списку', async ({
     page,
     authData,
   }) => {
