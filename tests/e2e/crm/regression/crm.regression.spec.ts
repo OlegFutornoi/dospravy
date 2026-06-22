@@ -1,5 +1,13 @@
 import type { TestDataFile } from '../../../../src/utils/data/load-test-data';
+import { getRuntimeContext } from '../../../../src/utils/data/load-test-data';
+import { loginCrmViaApi } from '../../../api/_shared/api-auth';
+import { disposeApiSession } from '../../../api/_shared/api-runtime';
+import {
+  createCrmContractorWithOverridesViaApi,
+  mapContractorSourceToApi,
+} from '../../../api/_shared/crm.api';
 import { generateCrmContractorData } from '../../../_shared/factories/crm-contractor.factory';
+import { buildCrmContractorFilterSeedSet } from '../../../_shared/factories/crm-contractor.factory';
 import { expect, test } from '../../../_shared/fixtures/app.fixture';
 import { ensureCrmCabinetByEmailPassword } from '../../../_shared/helpers/crm-cabinet-auth.flow';
 import { createCompanyWithRetry } from '../../../_shared/helpers/crm-company-create.flow';
@@ -43,6 +51,43 @@ function requireCompanyCreateData(testData: TestDataFile) {
   }
 
   return companyCreateData;
+}
+
+async function createCrmFilterSeedSetViaApi(
+  authData: Parameters<typeof loginCrmViaApi>[0],
+  contractorCreateData: ReturnType<typeof requireContractorCreateData>,
+  seed = Date.now(),
+) {
+  const runtimeContext = getRuntimeContext();
+  const session = await loginCrmViaApi(authData, runtimeContext.testEnv);
+  const seedSet = buildCrmContractorFilterSeedSet(contractorCreateData, seed);
+
+  try {
+    const createdContractors: Array<(typeof seedSet.contractors)[number]> = [];
+
+    for (let index = 0; index < seedSet.contractors.length; index += 1) {
+      const created = await createCrmContractorWithOverridesViaApi(
+        session,
+        contractorCreateData,
+        seedSet.contractors[index]!,
+        seed + index * 1_000,
+      );
+      createdContractors.push(created.contractor);
+    }
+
+    if (createdContractors.length !== seedSet.contractors.length) {
+      throw new Error(
+        `Очікувалось створити ${seedSet.contractors.length} contractor-ів для фільтра, але створено ${createdContractors.length}`,
+      );
+    }
+
+    return {
+      ...seedSet,
+      contractors: createdContractors as typeof seedSet.contractors,
+    };
+  } finally {
+    await disposeApiSession(session);
+  }
 }
 
 test.describe('Регресія: crm', () => {
@@ -96,7 +141,148 @@ test.describe('Регресія: crm', () => {
     await contractorsPage.expectContractorVisibleInTable(contractor);
   });
 
-  test('4. додає новий коментар агента в профілі першого кандидата', async ({ page, authData }) => {
+  test('4. фільтрує кандидатів за містом і показує тільки релевантні записи', async ({
+    page,
+    authData,
+    testData,
+  }) => {
+    const contractorCreateData = requireContractorCreateData(testData);
+    const seedSet = await createCrmFilterSeedSetViaApi(authData, contractorCreateData);
+
+    await ensureCrmCabinetByEmailPassword(page, authData);
+
+    const contractorsPage = new CrmContractorsPage(page);
+    await contractorsPage.goto();
+    const searchUrl = await contractorsPage.searchContractorAndWait(seedSet.searchToken);
+    expect(searchUrl.searchParams.get('search')).toContain(seedSet.searchToken);
+
+    await contractorsPage.openFiltersPanel();
+    await contractorsPage.selectFilterCity(seedSet.cityA);
+    const filterUrl = await contractorsPage.applyFiltersAndCaptureListRequest();
+
+    expect(filterUrl.searchParams.get('city_desired')).toBe(seedSet.cityA);
+    expect(filterUrl.searchParams.get('search')).toContain(seedSet.searchToken);
+    await contractorsPage.expectVisibleRowsCount(2);
+    await contractorsPage.expectVisibleContractorNames([
+      seedSet.contractors[0].fullName,
+      seedSet.contractors[1].fullName,
+    ]);
+    await contractorsPage.expectContractorNamesAbsent([
+      seedSet.contractors[2].fullName,
+      seedSet.contractors[3].fullName,
+    ]);
+    await contractorsPage.expectEveryVisibleRowToContain(seedSet.cityA);
+  });
+
+  test('5. фільтрує кандидатів за джерелом і показує тільки релевантні записи', async ({
+    page,
+    authData,
+    testData,
+  }) => {
+    const contractorCreateData = requireContractorCreateData(testData);
+    const seedSet = await createCrmFilterSeedSetViaApi(
+      authData,
+      contractorCreateData,
+      Date.now() + 500,
+    );
+
+    await ensureCrmCabinetByEmailPassword(page, authData);
+
+    const contractorsPage = new CrmContractorsPage(page);
+    await contractorsPage.goto();
+    await contractorsPage.searchContractorAndWait(seedSet.searchToken);
+
+    await contractorsPage.openFiltersPanel();
+    await contractorsPage.selectFilterSource(seedSet.sourceA);
+    const filterUrl = await contractorsPage.applyFiltersAndCaptureListRequest();
+
+    expect(filterUrl.searchParams.get('source')).toBe(mapContractorSourceToApi(seedSet.sourceA));
+    expect(filterUrl.searchParams.get('search')).toContain(seedSet.searchToken);
+    await contractorsPage.expectVisibleRowsCount(2);
+    await contractorsPage.expectVisibleContractorNames([
+      seedSet.contractors[0].fullName,
+      seedSet.contractors[2].fullName,
+    ]);
+    await contractorsPage.expectContractorNamesAbsent([
+      seedSet.contractors[1].fullName,
+      seedSet.contractors[3].fullName,
+    ]);
+    await contractorsPage.expectEveryVisibleRowToContain(seedSet.sourceA);
+  });
+
+  test('6. застосовує комбінований фільтр місто плюс джерело як логічне AND', async ({
+    page,
+    authData,
+    testData,
+  }) => {
+    const contractorCreateData = requireContractorCreateData(testData);
+    const seedSet = await createCrmFilterSeedSetViaApi(
+      authData,
+      contractorCreateData,
+      Date.now() + 1_000,
+    );
+
+    await ensureCrmCabinetByEmailPassword(page, authData);
+
+    const contractorsPage = new CrmContractorsPage(page);
+    await contractorsPage.goto();
+    await contractorsPage.searchContractorAndWait(seedSet.searchToken);
+
+    await contractorsPage.openFiltersPanel();
+    await contractorsPage.selectFilterCity(seedSet.cityA);
+    await contractorsPage.selectFilterSource(seedSet.sourceA);
+    const filterUrl = await contractorsPage.applyFiltersAndCaptureListRequest();
+
+    expect(filterUrl.searchParams.get('city_desired')).toBe(seedSet.cityA);
+    expect(filterUrl.searchParams.get('source')).toBe(mapContractorSourceToApi(seedSet.sourceA));
+    await contractorsPage.expectVisibleRowsCount(1);
+    await contractorsPage.expectVisibleContractorNames([seedSet.contractors[0].fullName]);
+    await contractorsPage.expectContractorNamesAbsent([
+      seedSet.contractors[1].fullName,
+      seedSet.contractors[2].fullName,
+      seedSet.contractors[3].fullName,
+    ]);
+    await contractorsPage.expectEveryVisibleRowToContain(seedSet.cityA);
+    await contractorsPage.expectEveryVisibleRowToContain(seedSet.sourceA);
+  });
+
+  test('7. очищає фільтри і повертає список до baseline-стану', async ({
+    page,
+    authData,
+    testData,
+  }) => {
+    const contractorCreateData = requireContractorCreateData(testData);
+    const seedSet = await createCrmFilterSeedSetViaApi(
+      authData,
+      contractorCreateData,
+      Date.now() + 1_500,
+    );
+
+    await ensureCrmCabinetByEmailPassword(page, authData);
+
+    const contractorsPage = new CrmContractorsPage(page);
+    await contractorsPage.goto();
+    await contractorsPage.searchContractorAndWait(seedSet.searchToken);
+    await contractorsPage.expectVisibleRowsCount(4);
+
+    await contractorsPage.openFiltersPanel();
+    await contractorsPage.selectFilterCity(seedSet.cityA);
+    await contractorsPage.applyFiltersAndCaptureListRequest();
+    await contractorsPage.expectVisibleRowsCount(2);
+
+    await contractorsPage.openFiltersPanel();
+    const clearedUrl = await contractorsPage.clearAllFiltersAndCaptureListRequest();
+
+    expect(clearedUrl.searchParams.get('city_desired')).toBeNull();
+    expect(clearedUrl.searchParams.get('source')).toBeNull();
+    expect(clearedUrl.searchParams.get('search')).toContain(seedSet.searchToken);
+    await contractorsPage.expectVisibleRowsCount(4);
+    await contractorsPage.expectVisibleContractorNames(
+      seedSet.contractors.map((contractor) => contractor.fullName),
+    );
+  });
+
+  test('8. додає новий коментар агента в профілі першого кандидата', async ({ page, authData }) => {
     await ensureCrmCabinetByEmailPassword(page, authData);
 
     const contractorsPage = new CrmContractorsPage(page);
@@ -107,7 +293,7 @@ test.describe('Регресія: crm', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('5. додає новий коментар агента через колонку "Коментар" у списку кандидатів', async ({
+  test('9. додає новий коментар агента через колонку "Коментар" у списку кандидатів', async ({
     page,
     authData,
   }) => {
@@ -124,7 +310,7 @@ test.describe('Регресія: crm', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('6. модерує замовлення через публічний доступ і підтвердження', async ({
+  test('10. модерує замовлення через публічний доступ і підтвердження', async ({
     page,
     authData,
   }) => {
@@ -138,7 +324,7 @@ test.describe('Регресія: crm', () => {
     expectModerationOutcome(moderatedOrder);
   });
 
-  test('7. підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
+  test('11. підтверджує першу пропозицію на зміну і прибирає її зі списку', async ({
     page,
     authData,
   }) => {
@@ -157,7 +343,7 @@ test.describe('Регресія: crm', () => {
     expect(result.status).toBeDefined();
   });
 
-  test('8. відмовляє по наступній пропозиції і залишає очікувану кількість карток у списку', async ({
+  test('12. відмовляє по наступній пропозиції і залишає очікувану кількість карток у списку', async ({
     page,
     authData,
   }) => {

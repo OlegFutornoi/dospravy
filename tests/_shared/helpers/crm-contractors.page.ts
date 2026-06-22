@@ -1,3 +1,4 @@
+import { URL } from 'node:url';
 import { expect, type Locator, type Page, type Response } from '@playwright/test';
 import type { GeneratedCrmContractorData } from '../factories/crm-contractor.factory';
 
@@ -46,8 +47,24 @@ export class CrmContractorsPage {
     return this.page.getByRole('button', { name: 'Новий кандидат' });
   }
 
+  get filtersButton(): Locator {
+    return this.page.getByRole('button', { name: 'Фільтри' }).first();
+  }
+
   get searchInput(): Locator {
     return this.page.getByPlaceholder('Пошук...');
+  }
+
+  get filtersForm(): Locator {
+    return this.page.locator('form.form-filter-shifts');
+  }
+
+  get clearAllFiltersButton(): Locator {
+    return this.filtersForm.getByRole('button', { name: 'Очистити всі' });
+  }
+
+  get applyFiltersButton(): Locator {
+    return this.filtersForm.getByRole('button', { name: 'Застосувати' });
   }
 
   get contractorRows(): Locator {
@@ -249,6 +266,10 @@ export class CrmContractorsPage {
       .first();
   }
 
+  private filterSelectByIndex(index: number): Locator {
+    return this.filtersForm.locator('.ant-select').nth(index);
+  }
+
   private async contractorRowTexts(): Promise<string[]> {
     return this.page
       .locator('.MuiTableRow-root')
@@ -366,6 +387,66 @@ export class CrmContractorsPage {
     this.log('Натиснуто "Додати кандидата" і модальне вікно закрито');
   }
 
+  async openFiltersPanel(): Promise<void> {
+    await expect(this.filtersButton).toBeVisible({ timeout: 15_000 });
+    await this.filtersButton.click();
+    await expect(this.filtersForm).toBeVisible({ timeout: 15_000 });
+    await expect(this.applyFiltersButton).toBeVisible({ timeout: 15_000 });
+    this.log('Відкрито панель фільтрів кандидатів');
+  }
+
+  private async selectFilterOption(
+    index: number,
+    optionText: string,
+    fieldName: string,
+  ): Promise<void> {
+    const select = this.filterSelectByIndex(index);
+    await expect(select).toBeVisible({ timeout: 15_000 });
+    await select.click();
+    await expect(this.activeDropdown()).toBeVisible({ timeout: 10_000 });
+    await expect(this.activeDropdownOption(optionText)).toBeVisible({ timeout: 10_000 });
+    await this.activeDropdownOption(optionText).click();
+    this.log(`У фільтрі "${fieldName}" обрано значення "${optionText}"`);
+  }
+
+  async selectFilterCity(city: string): Promise<void> {
+    await this.selectFilterOption(0, city, 'Місто');
+  }
+
+  async selectFilterSource(source: string): Promise<void> {
+    await this.selectFilterOption(2, source, 'Джерело походження');
+  }
+
+  async searchContractorAndWait(fullName: string): Promise<URL> {
+    await expect(this.searchInput).toBeVisible({ timeout: 15_000 });
+    const searchResponse = this.waitForApiResponse(/\/users\/crm\/contractors\/\?.*search=/);
+    await this.searchInput.fill(fullName);
+    await this.searchInput.press('Enter');
+    const response = await searchResponse;
+    this.log(`Виконано пошук кандидата за запитом "${fullName}"`);
+    return new URL(response.url());
+  }
+
+  async applyFiltersAndCaptureListRequest(): Promise<URL> {
+    const responsePromise = this.waitForApiResponse(/\/users\/crm\/contractors\/\?/);
+    await expect(this.applyFiltersButton).toBeEnabled({ timeout: 15_000 });
+    await this.applyFiltersButton.click();
+    const response = await responsePromise;
+    const url = new URL(response.url());
+    this.log(`Застосовано фільтри, list request = "${url.search}"`);
+    return url;
+  }
+
+  async clearAllFiltersAndCaptureListRequest(): Promise<URL> {
+    const responsePromise = this.waitForApiResponse(/\/users\/crm\/contractors\/\?/);
+    await expect(this.clearAllFiltersButton).toBeVisible({ timeout: 15_000 });
+    await this.clearAllFiltersButton.click();
+    const response = await responsePromise;
+    const url = new URL(response.url());
+    this.log(`Очищено фільтри, list request = "${url.search}"`);
+    return url;
+  }
+
   async searchContractor(fullName: string): Promise<void> {
     await expect(this.searchInput).toBeVisible({ timeout: 15_000 });
     await this.searchInput.fill(fullName);
@@ -386,6 +467,63 @@ export class CrmContractorsPage {
           .slice(0, maxItems as number),
       limit,
     );
+  }
+
+  async currentVisibleContractorRows(): Promise<string[]> {
+    return this.currentContractorRowSummaries(100);
+  }
+
+  async expectVisibleContractorNames(names: string[]): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          const rows = await this.currentVisibleContractorRows();
+          return names.every((name) => rows.some((row) => this.normalizeText(row).includes(name)));
+        },
+        {
+          timeout: 15_000,
+          message: `У таблиці мають бути видимі кандидати: ${names.join(', ')}`,
+        },
+      )
+      .toBe(true);
+  }
+
+  async expectContractorNamesAbsent(names: string[]): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          const rows = await this.currentVisibleContractorRows();
+          return names.every((name) =>
+            rows.every((row) => !this.normalizeText(row).includes(name)),
+          );
+        },
+        {
+          timeout: 15_000,
+          message: `У таблиці не повинно бути кандидатів: ${names.join(', ')}`,
+        },
+      )
+      .toBe(true);
+  }
+
+  async expectVisibleRowsCount(count: number): Promise<void> {
+    await expect
+      .poll(() => this.getContractorsCount(), {
+        timeout: 15_000,
+        message: `У таблиці очікується ${count} видимих кандидатів`,
+      })
+      .toBe(count);
+  }
+
+  async expectEveryVisibleRowToContain(text: string): Promise<void> {
+    const rows = await this.currentVisibleContractorRows();
+    expect(
+      rows.length,
+      'Для перевірки видимих рядків таблиця не повинна бути порожньою',
+    ).toBeGreaterThan(0);
+    expect(
+      rows.every((row) => this.normalizeText(row).includes(text)),
+      `Кожен видимий рядок має містити "${text}"`,
+    ).toBe(true);
   }
 
   async logCurrentContractorsList(prefix: string): Promise<void> {

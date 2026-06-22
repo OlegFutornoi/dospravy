@@ -1,7 +1,13 @@
+import { URLSearchParams } from 'node:url';
 import { expect } from '@playwright/test';
 import type { TestDataFile } from '../../../src/utils/data/load-test-data';
 import { generateCrmCompanyData } from '../../_shared/factories/crm-company.factory';
-import { generateCrmContractorData } from '../../_shared/factories/crm-contractor.factory';
+import {
+  buildCrmContractorData,
+  generateCrmContractorData,
+  type CrmContractorDataOverrides,
+  type GeneratedCrmContractorData,
+} from '../../_shared/factories/crm-contractor.factory';
 import type { ApiSession } from './api-runtime';
 import { findLookupIdByExactTitle, flattenLookupTree, type LookupOption } from './api-utils';
 
@@ -31,6 +37,10 @@ export interface CreatedCrmContractorApiResult {
   fullName: string;
 }
 
+export interface CreatedCrmContractorWithDataApiResult extends CreatedCrmContractorApiResult {
+  contractor: GeneratedCrmContractorData;
+}
+
 export interface CrmCommentResult {
   commentId: string;
   contractorId: string;
@@ -46,12 +56,28 @@ type CompanyListItem = {
   name: string;
 };
 
-type ContractorListItem = {
+export type ContractorListItem = {
   id: string;
   first_name: string;
   last_name: string;
   status: string;
+  source: string;
+  city_desired: string;
+  categories: Array<{
+    id: string;
+    name: string;
+    image: string | null;
+  }>;
 };
+
+export interface CrmContractorListQuery {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  lastActionType?: string;
+  cityDesired?: string;
+  source?: string;
+}
 
 type ContractorNote = {
   id: string;
@@ -77,7 +103,7 @@ function buildUniquePhone(prefix: string, digitsCount: number): string {
   return `${prefix}${suffix}`;
 }
 
-function mapContractorSourceToApi(source: string): string {
+export function mapContractorSourceToApi(source: string): string {
   const normalized = source.trim().toLowerCase();
 
   if (normalized === 'work.ua') {
@@ -255,6 +281,118 @@ export async function createCrmContractorViaApi(
   }
 
   throw new Error('Не вдалося створити CRM contractor через повторювані телефони після 5 спроб');
+}
+
+export async function createCrmContractorWithOverridesViaApi(
+  session: ApiSession,
+  contractorCreateData: ContractorCreateData,
+  overrides: CrmContractorDataOverrides,
+  seed = Date.now(),
+): Promise<CreatedCrmContractorWithDataApiResult> {
+  const categories = await getCrmCategories(session);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const contractor = buildCrmContractorData(
+      contractorCreateData,
+      overrides,
+      seed + attempt * 137,
+    );
+    const createResponse = await session.api.post('v1/users/crm/contractors/', {
+      data: {
+        phone: toApiPhone(
+          buildUniquePhone(
+            contractorCreateData.phone.prefix,
+            contractorCreateData.phone.digitsCount,
+          ),
+        ),
+        has_viber: true,
+        has_telegram: true,
+        has_whatsapp: true,
+        source: mapContractorSourceToApi(contractor.source),
+        first_name: contractor.firstName,
+        last_name: contractor.lastName,
+        gender: mapContractorGenderToApi(contractor.gender),
+        city_desired: contractor.city,
+        categories: [findLookupIdByExactTitle(categories, contractor.specialization)],
+        initial_note: contractor.comment,
+      },
+    });
+
+    if (createResponse.status() === 400) {
+      const errorBody = (await createResponse.json().catch(() => null)) as {
+        phone?: { detail?: string };
+      } | null;
+      const duplicatePhone =
+        typeof errorBody?.phone?.detail === 'string' &&
+        errorBody.phone.detail.includes('already exists');
+
+      if (duplicatePhone) {
+        continue;
+      }
+    }
+
+    const responseText = await createResponse.text();
+    expect(
+      createResponse.status(),
+      `Створення CRM contractor через API має повертати 201. Відповідь: ${responseText}`,
+    ).toBe(201);
+    const createdContractor = JSON.parse(responseText) as { id: string };
+
+    const searchBody = await listCrmContractorsViaApi(session, {
+      search: contractor.lastName,
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(
+      searchBody.results.some(
+        (item) =>
+          item.id === createdContractor.id &&
+          item.first_name === contractor.firstName &&
+          item.last_name === contractor.lastName,
+      ),
+      'Створений contractor має знаходитися у CRM пошуку',
+    ).toBeTruthy();
+
+    return {
+      contractorId: createdContractor.id,
+      fullName: contractor.fullName,
+      contractor,
+    };
+  }
+
+  throw new Error('Не вдалося створити CRM contractor через повторювані телефони після 5 спроб');
+}
+
+export async function listCrmContractorsViaApi(
+  session: ApiSession,
+  query: CrmContractorListQuery = {},
+): Promise<PagedResponse<ContractorListItem>> {
+  const params = new URLSearchParams({
+    limit: String(query.limit ?? 20),
+    offset: String(query.offset ?? 0),
+    last_action_type: query.lastActionType ?? '',
+  });
+
+  if (query.search) {
+    params.set('search', query.search);
+  }
+
+  if (query.cityDesired) {
+    params.set('city_desired', query.cityDesired);
+  }
+
+  if (query.source) {
+    params.set('source', query.source);
+  }
+
+  const response = await session.api.get(`v1/users/crm/contractors/?${params.toString()}`);
+  const responseText = await response.text();
+  expect(
+    response.ok(),
+    `Список CRM contractors має бути доступним. Відповідь: ${responseText}`,
+  ).toBeTruthy();
+  return JSON.parse(responseText) as PagedResponse<ContractorListItem>;
 }
 
 export async function addAgentCommentToContractorViaApi(
